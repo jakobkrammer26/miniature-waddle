@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TwoTigers OS - Tiger Edition</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+            user-select: none;
+        }
+
+        body {
+            height: 100vh;
+            background: radial-gradient(circle at 50% 110%, #3a1a00 0%, #0a0500 60%, #000000 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            overflow: hidden;
+            position: relative;
+        }
+
+        body::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: repeating-linear-gradient(45deg, rgba(0, 0, 0, 0.15), rgba(0, 0, 0, 0.15) 40px, rgba(255, 106, 0, 0.02) 40px, rgba(255, 106, 0, 0.02) 80px);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* --- SPERRBILDSCHIRM --- */
+        #lock-screen {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(5, 3, 0, 0.96);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            z-index: 99999;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.5s ease;
+        }
+
+        .lock-container {
+            text-align: center;
+            background: rgba(255, 106, 0, 0.03);
+            padding: 40px;
+            border-radius: 24px;
+            border: 1px solid rgba(255, 106, 0, 0.2);
+            box-shadow: 0 25px 60px rgba(0,0,0,0.8), 0 0 30px rgba(255, 106, 0, 0.1);
+        }
+
+        .lock-container h1 { 
+            font-size: 36px; 
+            margin-bottom: 10px; 
+            font-weight: 800; 
+            color: #ff6a00;
+            text-shadow: 0 0 15px rgba(255, 106, 0, 0.6);
+        }
+        
+        .pin-input {
+            background: rgba(0,0,0,0.7);
+            border: 1px solid rgba(255, 106, 0, 0.4);
+            padding: 12px;
+            border-radius: 12px;
+            color: #ff6a00;
+            font-size: 24px;
+            text-align: center;
+            width: 160px;
+            letter-spacing: 4px;
+            outline: none;
+            margin-bottom: 18px;
+        }
+
+        .lock-btn {
+            background: #ff6a00; color: black; border: none; padding: 12px 24px;
+            font-weight: bold; border-radius: 12px; cursor: pointer; width: 100%;
+            transition: 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .lock-btn:hover { background: #ff8533; box-shadow: 0 0 15px rgba(255, 106, 0, 0.5); }
+
+        .lock-err-msg {
+            color: #ff5f56; margin-top: 12px; font-size: 13px; font-weight: bold; visibility: hidden;
+        }
+
+        /* --- DESKTOP --- */
+        .desktop {
+            width: 96%;
+            height: 94%;
+            border-radius: 25px;
+            background: rgba(10, 5, 0, 0.25);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 106, 0, 0.15);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.8);
+            z-index: 1;
+        }
+
+        .topbar {
+            height: 45px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 25px;
+            font-size: 14px;
+            font-weight: 600;
+            border-bottom: 1px solid rgba(255, 106, 0, 0.15);
+            background: rgba(0, 0, 0, 0.6);
+            color: #ff6a00;
+        }
+
+        .main {
+            flex: 1;
+            position: relative;
+            padding: 20px;
+        }
+
+        .desktop-widgets {
+            position: absolute;
+            top: 25%; left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .clock { 
+            font-size: 90px; 
+            font-weight: 100; 
+            line-height: 1; 
+            color: white;
+            text-shadow: 0 0 20px rgba(255, 106, 0, 0.3);
+        }
+        .date { font-size: 18px; opacity: 0.6; margin-top: 10px; letter-spacing: 1px; }
+
+        /* --- FENSTER --- */
+        .window {
+            position: absolute;
+            background: rgba(12, 8, 5, 0.95);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 106, 0, 0.3);
+            box-shadow: 0 30px 70px rgba(0,0,0,0.9);
+            display: none; 
+            flex-direction: column; 
+            overflow: hidden; 
+            z-index: 10;
+            width: 750px; height: 500px;
+        }
+
+        .window-header {
+            background: rgba(255, 106, 0, 0.05); 
+            padding: 12px 16px;
+            display: flex; align-items: center; justify-content: space-between; 
+            cursor: move;
+            border-bottom: 1px solid rgba(255, 106, 0, 0.2);
+        }
+
+        .window-dots { display: flex; gap: 8px; }
+        .dot { width: 12px; height: 12px; border-radius: 50%; cursor: pointer; }
+        .dot-close { background: #ff5f56; }
+        .window-title { font-size: 13px; color: #ff6a00; font-weight: bold; letter-spacing: 0.5px; }
+        .window-content { flex-grow: 1; width: 100%; height: calc(100% - 40px); overflow: auto; color: #fff; }
+
+        /* --- MUSIK PLAYER --- */
+        .music-container { padding: 25px; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%; gap: 15px; }
+        .track-info { font-weight: bold; font-size: 16px; color: #ff6a00; width: 80%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .station-select { background: #000; color: white; border: 1px solid #ff6a00; padding: 8px; border-radius: 6px; outline: none; margin-bottom: 5px; width: 80%; cursor: pointer; }
+        .progress-bar { width: 80%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; position: relative; }
+        .progress-fill { width: 0%; height: 100%; background: #ff6a00; border-radius: 3px; box-shadow: 0 0 8px #ff6a00; }
+        .controls { display: flex; gap: 25px; font-size: 32px; cursor: pointer; margin-top: 5px; }
+        .controls span:hover { transform: scale(1.2); }
+        .volume-box { display: flex; align-items: center; gap: 10px; margin-top: 5px; width: 60%; }
+        .volume-box input { flex: 1; accent-color: #ff6a00; cursor: pointer; }
+
+        /* --- E-MAIL CLIENT --- */
+        .mail-container { padding: 20px; display: flex; flex-direction: column; gap: 12px; height: 100%; }
+        .mail-row { display: flex; flex-direction: column; gap: 4px; }
+        .mail-row label { font-size: 12px; color: #ff6a00; font-weight: bold; text-transform: uppercase; }
+        .mail-row input, .mail-row textarea {
+            background: rgba(0,0,0,0.6); border: 1px solid rgba(255,106,0,0.3);
+            border-radius: 6px; padding: 10px; color: white; outline: none; font-size: 14px;
+        }
+        .mail-row textarea { resize: none; flex-grow: 1; height: 140px; }
+
+        /* --- BROWSER --- */
+        .browser-container { display: flex; flex-direction: column; height: 100%; }
+        .browser-bar { display: flex; gap: 8px; padding: 10px; background: rgba(0,0,0,0.5); border-bottom: 1px solid rgba(255,106,0,0.2); }
+        .browser-bar input { flex: 1; background: rgba(0,0,0,0.6); border: 1px solid rgba(255,106,0,0.3); padding: 8px 12px; border-radius: 6px; color: white; font-size: 13px; outline: none; }
+        .browser-bar button { background: #ff6a00; border: none; padding: 0 15px; border-radius: 6px; font-weight: bold; cursor: pointer; color: black; }
+        .browser-shortcuts { display: flex; gap: 10px; padding: 5px 10px; background: #111; font-size: 12px; border-bottom: 1px solid rgba(255,106,0,0.1); }
+        .shortcut-btn { color: #ff6a00; cursor: pointer; text-decoration: underline; }
+        .browser-view-frame { flex: 1; width: 100%; height: 100%; border: none; background: white; user-select: auto; }
+
+        /* --- WEITERE INTERNE COMPONENTEN --- */
+        .editor-container { padding: 15px; height: 100%; display: flex; flex-direction: column; gap: 10px; }
+        .editor-textarea { flex-grow: 1; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,106,0,0.2); border-radius: 8px; color: #fff; padding: 12px; font-size: 14px; resize: none; outline: none; }
+        .tiger-btn { background: #ff6a00; border: none; padding: 10px; color: black; border-radius: 6px; font-weight: bold; cursor: pointer; text-transform: uppercase; font-size: 12px; }
+        .calc-container { padding: 15px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; height: 100%; background: rgba(0,0,0,0.3); }
+        .calc-screen { grid-column: span 4; background: #000; text-align: right; padding: 12px; font-size: 24px; font-family: monospace; border-radius: 8px; border: 1px solid rgba(255,106,0,0.2); color: #ff6a00; }
+        .calc-btn { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,106,0,0.1); color: white; padding: 12px; font-size: 18px; font-weight: bold; border-radius: 6px; cursor: pointer; }
+        .padded-content { padding: 20px; }
+        .chat-box { background: rgba(0,0,0,0.4); height: 180px; border-radius: 8px; padding: 10px; overflow-y: auto; font-size: 13px; display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; border: 1px solid rgba(255,106,0,0.15); }
+        .chat-input-row { display: flex; gap: 8px; }
+        .chat-input-row input { flex: 1; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,106,0,0.2); border-radius: 6px; padding: 8px; color: white; outline: none; }
+        .file-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
+        .file-icon-item { text-align: center; cursor: pointer; padding: 15px; border-radius: 12px; background: rgba(255,106,0,0.03); border: 1px solid rgba(255,106,0,0.1); }
+
+        /* --- DOCK UNTEN --- */
+        .dock-wrapper {
+            position: absolute;
+            bottom: 20px; left: 50%;
+            transform: translateX(-50%);
+            z-index: 10000;
+        }
+
+        .dock {
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            padding: 12px 22px;
+            border-radius: 24px;
+            display: flex;
+            gap: 16px;
+            border: 1px solid rgba(255, 106, 0, 0.3);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.8), 0 0 20px rgba(255,106,0,0.1);
+        }
+
+        .dock-item {
+            width: 52px; height: 52px;
+            border-radius: 14px;
+            background: rgba(255, 106, 0, 0.05);
+            border: 1px solid rgba(255, 106, 0, 0.1);
+            display: flex; justify-content: center; align-items: center;
+            font-size: 26px; cursor: pointer;
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), background 0.2s;
+        }
+
+        .dock-item:hover {
+            transform: scale(1.25) translateY(-10px);
+            background: rgba(255, 106, 0, 0.2);
+            border-color: #ff6a00;
+            box-shadow: 0 0 15px rgba(255,106,0,0.4);
+        }
+    </style>
+</head>
+<body onclick="initAudioContext()">
+
+    <audio id="bg-audio" crossorigin="anonymous"></audio>
+
+    <div id="lock-screen">
+        <div class="lock-container">
+            <h1>🐅 TwoTigers OS</h1>
+            <p style="opacity: 0.6; margin-bottom: 20px; font-size: 14px;">System gesichert. PIN eingeben (Standard: 04)</p>
+            <input type="password" class="pin-input" id="lock-pin" maxlength="4" placeholder="••••" onkeydown="if(event.key==='Enter') unlockSystem()">
+            <button class="lock-btn" onclick="unlockSystem()">Einloggen</button>
+            <p id="lock-error" class="lock-err-msg">Falsche PIN!</p>
+        </div>
+    </div>
+
+    <div class="desktop">
+        
+        <div class="topbar">
+            <div>🐅 TwoTigers OS Ultra</div>
+            <div id="top-clock" style="font-family: monospace; font-size: 14px; letter-spacing: 1px;">00:00:00</div>
+        </div>
+
+        <div class="main" id="desktop-area">
+            
+            <div class="desktop-widgets">
+                <div class="clock" id="center-clock">00:00</div>
+                <div class="date" id="center-date">Montag</div>
+            </div>
+
+            <div class="window" id="win-music" style="top: 15%; left: 15%; width: 390px; height: 340px;">
+                <div class="window-header">
+                    <div class="window-dots"><div class="dot dot-close" onclick="closeWindow('win-music')"></div></div>
+                    <div class="window-title">MusikPlayer.app</div>
+                    <div></div>
+                </div>
+                <div class="window-content">
+                    <div class="music-container">
+                        <div style="font-size: 50px;" id="music-icon">🎵</div>
+                        <div class="track-info" id="track-title">Wähle Musik...</div>
+                        
+                        <select class="station-select" id="station-picker" onchange="changeStation()">
+                            <option value="https://www.w3schools.com/html/horse.mp3">Offizieller W3-Test-Sound (Garantiert fehlerfrei) 🔊</option>
+                            <option value="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3">Synth Beats Pop 1 🌌</option>
+                            <option value="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3">Cyber Chill Lounge 2 ☕</option>
+                        </select>
+
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="music-progress"></div>
+                        </div>
+                        
+                        <div class="controls">
+                            <span onclick="togglePlay()" id="play-btn">▶️</span>
+                        </div>
+
+                        <div class="volume-box">
+                            <span>🔈</span>
+                            <input type="range" min="0" max="1" step="0.05" value="0.5" id="volume-slider" oninput="setVolume(this.value)">
+                            <span>🔊</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="window" id="win-mail" style="top: 10%; left: 12%; width: 550px; height: 430px;">
+                <div class="window-header">
+                    <div class="window-dots"><div class="dot dot-close" onclick="closeWindow('win-mail')"></div></div>
+                    <div class="window-title">Mail.app (mailto:)</div>
+                    <div></div>
+                </div>
+                <div class="window-content">
+                    <div class="mail-container">
+                        <div class="mail-row">
+                            <label>Empfänger:</label>
+                            <input type="email" id="mail-to" placeholder="zieladresse@domain.com">
+                        </div>
+                        <div class="mail-row">
+                            <label>Betreff:</label>
+                            <input type="text" id="mail-subject" placeholder="Betreff...">
+                        </div>
+                        <div class="mail-row">
+                            <label>Inhalt:</label>
+                            <textarea id="mail-body" placeholder="Schreibe deine E-Mail..."></textarea>
+                        </div>
+                        <button class="tiger-btn" onclick="sendRealEmail()">E-Mail absenden 📧</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="window" id="win-browser" style="top: 5%; left: 8%; width: 780px; height: 510px;">
+                <div class="window-header">
+                    <div class="window-dots"><div class="dot dot-close" onclick="closeWindow('win-browser')"></div></div>
+                    <div class="window-title">TigerBrowser v6.0</div>
+                    <div></div>
+                </div>
+                <div class="browser-container">
+                    <div class="browser-bar">
+                        <input type="text" id="browser-url" value="https://start.duckduckgo.com">
+                        <button onclick="browseToUrl()">Los</button>
+                    </div>
+                    <div class="browser-shortcuts">
+                        <span>Schnellauswahl:</span>
+                        <span class="shortcut-btn" onclick="quickLoad('https://start.duckduckgo.com')">DuckDuckGo 🔍</span> | 
+                        <span class="shortcut-btn" onclick="quickLoad('https://www.wikipedia.org')">Wikipedia 📚</span> | 
+                        <span class="shortcut-btn" onclick="quickLoad('https://tictactoe.org')">Spiele 🎮</span>
+                    </div>
+                    <iframe class="browser-view-frame" id="browser-frame" src="https://start.duckduckgo.com"></iframe>
+                </div>
+            </div>
+
+            <div class="window" id="win-files" style="top: 25%; left: 30%; width: 500px; height: 350px;">
+                <div class="window-header">
+                    <div class="window-dots"><div class="dot dot-close" onclick="closeWindow('win-files')"></div></div>
+                    <div class="window-title">Dateisystem</div>
+                    <div></div>
+                </div>
+                <div class="window-content padded-content">
+                    <div class="file-list">
+                        <div class="file-icon-item" onclick="openWindow('win-editor')">📄<br><span style="font-size:11px; color:#ff6a00">Geheim.txt</span></div>
+                        <div class="file-icon-item">📁<br><span style="font-size:11px">Kernels</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="window" id="win-editor" style="top: 12%; left: 40%; width: 500px; height: 380px;">
+                <div class="window-header">
+                    <div class="window-dots"><div class="dot dot-close" onclick="closeWindow('win-editor')"></div></div>
+                    <div class="window-title">Editor.app</div>
+                    <div></div>
+                </div>
+                <div class="window-content">
+                    <div class="editor-container">
+                        <textarea class="editor-textarea" id="editor-field" placeholder="Schreibe etwas..."></textarea>
+                        <button class="tiger-btn" onclick="downloadText()">Speichern 💾</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="window" id="win-calc" style="top: 20%; left: 50%; width: 290px; height: 380px;">
+                <div class="window-header">
+                    <div class="window-dots"><div class="dot dot-close" onclick="closeWindow('win-calc')"></div></div>
+                    <div class="window-title">Rechner</div>
+                    <div></div>
+                </div>
+                <div class="window-content">
+                    <div class="calc-container">
+                        <div class="calc-screen" id="calc-display">0</div>
+                        <button class="calc-btn" onclick="clearCalc()">C</button>
+                        <button class="calc-btn" onclick="inputCalc('/')">/</button>
+                        <button class="calc-btn" onclick="inputCalc('*')">*</button>
+                        <button class="calc-btn op" onclick="inputCalc('-')">-</button>
+                        <button class="calc-btn" onclick="inputCalc('7')">7</button>
+                        <button class="calc-btn" onclick="inputCalc('8')">8</button>
+                        <button class="calc-btn" onclick="inputCalc('9')">9</button>
+                        <button class="calc-btn op" onclick="inputCalc('+')">+</button>
+                        <button class="calc-btn" onclick="inputCalc('4')">4</button>
+                        <button class="calc-btn" onclick="inputCalc('5')">5</button>
+                        <button class="calc-btn" onclick="inputCalc('6')">6</button>
+                        <button class="calc-btn op" style="grid-row: span 2; height: 100%;" onclick="calculateResult()">=</button>
+                        <button class="calc-btn" onclick="inputCalc('1')">1</button>
+                        <button class="calc-btn" onclick="inputCalc('2')">2</button>
+                        <button class="calc-btn" onclick="inputCalc('3')">3</button>
+                        <button class="calc-btn" style="grid-column: span 3;" onclick="inputCalc('0')">0</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="window" id="win-chat" style="top: 30%; left: 20%; width: 500px; height: 350px;">
+                <div class="window-header">
+                    <div class="window-dots"><div class="dot dot-close" onclick="closeWindow('win-chat')"></div></div>
+                    <div class="window-title">TigerNet_Chat</div>
+                    <div></div>
+                </div>
+                <div class="window-content padded-content">
+                    <div class="chat-box" id="chat-box">
+                        <div><strong style="color:#ff6a00">System:</strong> Kanal verschlüsselt.</div>
+                    </div>
+                    <div class="chat-input-row">
+                        <input type="text" id="chat-input" placeholder="Nachricht..." onkeydown="if(event.key==='Enter') sendChatMsg()">
+                        <button class="tiger-btn" onclick="sendChatMsg()">Senden</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="window" id="win-settings" style="top: 22%; left: 35%; width: 500px; height: 350px;">
+                <div class="window-header">
+                    <div class="window-dots"><div class="dot dot-close" onclick="closeWindow('win-settings')"></div></div>
+                    <div class="window-title">Optionen</div>
+                    <div></div>
+                </div>
+                <div class="window-content padded-content">
+                    <h3 style="color:#ff6a00">Optionen</h3><br>
+                    <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px; border:1px solid rgba(255,106,0,0.1)">
+                        <p style="font-size: 13px; margin-bottom: 8px">PIN ändern:</p>
+                        <input type="password" id="new-pin" maxlength="4" style="background:#000; border:1px solid #ff6a00; padding:6px; color:white; border-radius:4px" placeholder="Neue PIN">
+                        <button class="tiger-btn" style="padding:6px 12px; margin-left:5px" onclick="changePin()">Sichern</button>
+                    </div>
+                    <br>
+                    <button class="tiger-btn" style="width:100%; background:#ff5f56; color:white;" onclick="lockSystem()">SYSTEM SPERREN</button>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="dock-wrapper">
+            <div class="dock">
+                <div class="dock-item" onclick="openWindow('win-browser')" title="Browser">🌐</div>
+                <div class="dock-item" onclick="openWindow('win-mail')" title="Mail schreiben">📧</div>
+                <div class="dock-item" onclick="openWindow('win-files')" title="Dateimanager">📁</div>
+                <div class="dock-item" onclick="openWindow('win-editor')" title="Texteditor">📄</div>
+                <div class="dock-item" onclick="openWindow('win-calc')" title="Taschenrechner">🧮</div>
+                <div class="dock-item" onclick="openWindow('win-music')" title="Musik Player">🎵</div>
+                <div class="dock-item" onclick="openWindow('win-chat')" title="Chat">💬</div>
+                <div class="dock-item" onclick="openWindow('win-settings')" title="Einstellungen">⚙️</div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        let systemPin = "04";
+        const audio = document.getElementById("bg-audio");
+        const playBtn = document.getElementById("play-btn");
+        const trackTitle = document.getElementById("track-title");
+        const stationPicker = document.getElementById("station-picker");
+        const progressFill = document.getElementById("music-progress");
+        let audioInitialized = false;
+
+        audio.volume = 0.5;
+
+        // Schaltet das Audio-System beim ersten Klick frei (Wichtig für Browser-Vorschriften)
+        function initAudioContext() {
+            if (!audioInitialized) {
+                audio.play().then(() => { audio.pause(); }).catch(() => {});
+                audioInitialized = true;
+            }
+        }
+
+        // --- MAIL CLIENT ---
+        function sendRealEmail() {
+            const to = document.getElementById("mail-to").value;
+            const subject = document.getElementById("mail-subject").value;
+            const body = document.getElementById("mail-body").value;
+            window.location.href = `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        }
+
+        // --- BROWSER ENGINE ---
+        function browseToUrl() {
+            const urlInput = document.getElementById("browser-url").value;
+            const frame = document.getElementById("browser-frame");
+            if (!urlInput.startsWith("http://") && !urlInput.startsWith("https://")) {
+                frame.src = "https://start.duckduckgo.com/?q=" + encodeURIComponent(urlInput);
+            } else {
+                frame.src = urlInput;
+            }
+        }
+
+        function quickLoad(url) {
+            document.getElementById("browser-url").value = url;
+            document.getElementById("browser-frame").src = url;
+        }
+
+        // --- AUDIO ENGINE ---
+        function changeStation() {
+            const isPlaying = !audio.paused;
+            audio.src = stationPicker.value;
+            trackTitle.textContent = stationPicker.options[stationPicker.selectedIndex].text;
+            if (isPlaying) { audio.play().catch(() => {}); }
+        }
+        
+        function togglePlay() {
+            if (!audio.src) { changeStation(); }
+
+            if (audio.paused) {
+                audio.play()
+                    .then(() => { playBtn.textContent = "⏸️"; })
+                    .catch(() => {});
+            } else {
+                audio.pause();
+                playBtn.textContent = "▶️";
+            }
+        }
+
+        function setVolume(val) { audio.volume = val; }
+
+        audio.addEventListener("timeupdate", () => {
+            if (audio.duration) {
+                const pct = (audio.currentTime / audio.duration) * 100;
+                progressFill.style.width = pct + "%";
+            }
+        });
+
+        // --- CLOCK ---
+        function updateClock() {
+            const now = new Date();
+            document.getElementById("top-clock").textContent = now.toLocaleTimeString("de-DE");
+            document.getElementById("center-clock").textContent = now.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
+            document.getElementById("center-date").textContent = now.toLocaleDateString("de-DE", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+        }
+        setInterval(updateClock, 1000); updateClock();
+
+        // --- LOCKSCREEN ---
+        function unlockSystem() {
+            const input = document.getElementById("lock-pin");
+            const error = document.getElementById("lock-error");
+            if (input.value === systemPin) {
+                document.getElementById("lock-screen").style.opacity = "0";
+                setTimeout(() => { document.getElementById("lock-screen").style.display = "none"; }, 500);
+                error.style.visibility = "hidden";
+            } else { 
+                error.style.visibility = "visible"; 
+            }
+            input.value = "";
+        }
+
+        function lockSystem() {
+            const ls = document.getElementById("lock-screen");
+            ls.style.display = "flex";
+            setTimeout(() => { ls.style.opacity = "1"; }, 10);
+        }
+
+        function changePin() {
+            const np = document.getElementById("new-pin").value;
+            if (np.length === 4 && !isNaN(np)) {
+                systemPin = np;
+                document.getElementById("new-pin").value = "";
+            }
+        }
+
+        // --- WINDOW MANAGER ---
+        function openWindow(id) {
+            const win = document.getElementById(id);
+            win.style.display = "flex";
+            focusWindow(win);
+        }
+        function closeWindow(id) { document.getElementById(id).style.display = "none"; }
+        function focusWindow(win) {
+            document.querySelectorAll(".window").forEach(w => w.style.zIndex = 10);
+            win.style.zIndex = 100;
+        }
+
+        function downloadText() {
+            const text = document.getElementById("editor-field").value;
+            const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob); a.download = "Tiger_Log.txt"; a.click();
+        }
+
+        const calcDisplay = document.getElementById("calc-display");
+        function inputCalc(val) {
+            if (calcDisplay.textContent === "0" && !isNaN(val)) calcDisplay.textContent = val;
+            else calcDisplay.textContent += val;
+        }
+        function clearCalc() { calcDisplay.textContent = "0"; }
+        function calculateResult() {
+            try { calcDisplay.textContent = eval(calcDisplay.textContent); } catch { calcDisplay.textContent = "0"; }
+        }
+
+        function sendChatMsg() {
+            const inp = document.getElementById("chat-input");
+            const box = document.getElementById("chat-box");
+            if (inp.value.trim() !== "") {
+                box.innerHTML += `<div><strong style="color:#ff6a00">User:</strong> ${inp.value}</div>`;
+                inp.value = ""; box.scrollTop = box.scrollHeight;
+                setTimeout(() => {
+                    box.innerHTML += `<div><strong style="color:#ff6a00">🐅 TigerBot:</strong> Übertragung gesichert.</div>`;
+                    box.scrollTop = box.scrollHeight;
+                }, 800);
+            }
+        }
+
+        // DRAG AND DROP ENGINE
+        document.querySelectorAll(".window").forEach(win => {
+            const header = win.querySelector('.window-header');
+            header.onmousedown = function(e) {
+                if (e.target.classList.contains('dot') || e.target.closest('.browser-bar') || e.target.closest('.browser-shortcuts') || e.target.closest('input') || e.target.closest('textarea')) return;
+                focusWindow(win);
+                let shiftX = e.clientX - win.getBoundingClientRect().left;
+                let shiftY = e.clientY - win.getBoundingClientRect().top;
+                function moveAt(clientX, clientY) {
+                    win.style.left = clientX - shiftX + 'px';
+                    win.style.top = clientY - shiftY + 'px';
+                }
+                function onMouseMove(ev) { moveAt(ev.clientX, ev.clientY); }
+                document.addEventListener('mousemove', onMouseMove);
+                document.onmouseup = function() {
+                    document.removeEventListener('mousemove', onMouseMove);
+                    document.onmouseup = null;
+                };
+            };
+        });
+    </script>
+</body>
+</html>
