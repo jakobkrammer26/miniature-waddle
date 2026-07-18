@@ -48,7 +48,7 @@
         }
 
         #anzeige-bereich { display: none; text-align: center; width: 100%; z-index: 10; }
-        #richtungs-text { font-size: 6rem; font-weight: bold; text-shadow: 3px 3px 15px rgba(0,0,0,0.9); }
+        #richtungs-text { font-size: 5rem; font-weight: bold; text-shadow: 3px 3px 15px rgba(0,0,0,0.9); }
         
         #status { position: absolute; top: 15px; color: #666; font-size: 0.9rem; font-family: Arial, sans-serif; }
 
@@ -115,7 +115,8 @@
         .btn-hupe { background-color: #007bff; grid-column: span 3; height: 75px; font-size: 1.6rem; box-shadow: 0 6px #0056b3; }
         .btn-hupe:active { background-color: #0056b3; }
 
-        .btn-autonom { background-color: #6f42c1; font-size: 1.2rem; box-shadow: 0 6px #5a32a3; }
+        /* Der neue Treppenknopf */
+        .btn-treppe { background-color: #17a2b8; font-size: 1.1rem; box-shadow: 0 6px #117a8b; }
         .btn-sirene { background-color: #dc3545; font-size: 1.2rem; box-shadow: 0 6px #bd2130; }
 
         /* Aktiv-Zustand für eingerastete Tasten */
@@ -149,7 +150,7 @@
             <div class="btn-control btn-blinker" id="blinkerRBtn" onclick="klickeBlinker('R')">Blink ➡️</div>
             
             <div class="btn-control" onmousedown="sende('LINKS')" ontouchstart="sende('LINKS')" onmouseup="sende('STOP_FAHREN')" ontouchend="sende('STOP_FAHREN')">⬅️</div>
-            <div class="btn-control btn-autonom" id="autonomBtn" onclick="klickeAutonom()">🤖 Auto</div>
+            <div class="btn-control btn-treppe" id="treppeBtn" onclick="klickeTreppe()">🧗 Treppe</div>
             <div class="btn-control" onmousedown="sende('RECHTS')" ontouchstart="sende('RECHTS')" onmouseup="sende('STOP_FAHREN')" ontouchend="sende('STOP_FAHREN')">➡️</div>
             
             <div class="btn-control btn-sirene" id="sireneBtn" onclick="klickeSirene()">🚨 Sirene</div>
@@ -175,11 +176,11 @@
         let sirenenInterval = null, oscillatorSirene = null, alarmLäuft = false;
         let oscillatorHupe = null, hupeLäuft = false;
         let blinkerInterval = null, blinkerLinks = false, blinkerRechts = false;
-        let autonomInterval = null, autonomModus = false;
+        let oscillatorTreppe = null, treppenModus = false;
         let bremseLäuft = false;
 
         // Controller Umschalt-Zustände
-        let ctrlAutonom = false; let ctrlSirene = false;
+        let ctrlTreppe = false; let ctrlSirene = false;
         let ctrlBlinkerL = false; let ctrlBlinkerR = false;
 
         const rText = document.getElementById('richtungs-text');
@@ -221,31 +222,22 @@
             }
         }
 
-        // Controller Einrast-Funktionen für Blinker
         function klickeBlinker(richtung) {
             if (richtung === 'L') {
-                ctrlBlinkerR = false;
-                document.getElementById('blinkerRBtn').classList.remove('toggle-aktiv');
-                
-                ctrlBlinkerL = !ctrlBlinkerL;
-                document.getElementById('blinkerLBtn').classList.toggle('toggle-aktiv', ctrlBlinkerL);
-                
+                ctrlBlinkerR = false; document.getElementById('blinkerRBtn').classList.remove('toggle-aktiv');
+                ctrlBlinkerL = !ctrlBlinkerL; document.getElementById('blinkerLBtn').classList.toggle('toggle-aktiv', ctrlBlinkerL);
                 if (ctrlBlinkerL) sende('BLINKER_L'); else sende('STOP_BLINKER');
             } else {
-                ctrlBlinkerL = false;
-                document.getElementById('blinkerLBtn').classList.remove('toggle-aktiv');
-                
-                ctrlBlinkerR = !ctrlBlinkerR;
-                document.getElementById('blinkerRBtn').classList.toggle('toggle-aktiv', ctrlBlinkerR);
-                
+                ctrlBlinkerL = false; document.getElementById('blinkerLBtn').classList.remove('toggle-aktiv');
+                ctrlBlinkerR = !ctrlBlinkerR; document.getElementById('blinkerRBtn').classList.toggle('toggle-aktiv', ctrlBlinkerR);
                 if (ctrlBlinkerR) sende('BLINKER_R'); else sende('STOP_BLINKER');
             }
         }
 
-        function klickeAutonom() {
-            ctrlAutonom = !ctrlAutonom;
-            document.getElementById('autonomBtn').classList.toggle('toggle-aktiv', ctrlAutonom);
-            sende('AUTONOM');
+        function klickeTreppe() {
+            ctrlTreppe = !ctrlTreppe;
+            document.getElementById('treppeBtn').classList.toggle('toggle-aktiv', ctrlTreppe);
+            sende('TREPPE');
         }
         
         function klickeSirene() {
@@ -260,16 +252,16 @@
                 if (befehl === 'BREMSE_AN') { starteBremse(); return; }
                 if (befehl === 'BREMSE_AUS') { stoppeBremse(); return; }
                 
-                if (bremseLäuft || (autonomModus && befehl !== 'AUTONOM')) return;
+                if (bremseLäuft || (treppenModus && befehl !== 'TREPPE')) return;
 
                 if (befehl === 'VORWÄRTS') zeigeRichtung('VORWÄRTS', '#006400');
                 if (befehl === 'RÜCKWÄRTS') zeigeRichtung('RÜCKWÄRTS', '#8B0000');
                 if (befehl === 'LINKS') zeigeRichtung('LINKS', '#4B0082');
                 if (befehl === 'RECHTS') zeigeRichtung('RECHTS', '#4A3B00');
                 
-                if (befehl === 'STOP_FAHREN' && !alarmLäuft && !blinkerLinks && !blinkerRechts && !autonomModus) allesAusschalten();
+                if (befehl === 'STOP_FAHREN' && !alarmLäuft && !blinkerLinks && !blinkerRechts && !treppenModus) allesAusschalten();
 
-                if (befehl === 'AUTONOM') { if (!autonomModus) starteAutonom(); else stoppeAutonom(); }
+                if (befehl === 'TREPPE') { if (!treppenModus) starteTreppe(); else stoppeTreppe(); }
                 if (befehl === 'HUPE_AN' && !hupeLäuft) starteHupe();
                 if (befehl === 'HUPE_AUS') stoppeHupe();
                 
@@ -289,7 +281,7 @@
             });
         }
 
-        function zeigeRichtung(text, farbe) { if (!alarmLäuft && !blinkerLinks && !blinkerRechts) { rText.innerText = text; document.body.style.backgroundColor = farbe; } }
+        function zeigeRichtung(text, farbe) { if (!alarmLäuft && !blinkerLinks && !blinkerRechts && !treppenModus) { rText.innerText = text; document.body.style.backgroundColor = farbe; } }
         
         function allesAusschalten() {
             blinkerLinks = false; blinkerRechts = false;
@@ -299,7 +291,7 @@
         }
 
         function starteBremse() {
-            bremseLäuft = true; if (autonomModus) autonomModus = false; stoppeAlarm(); allesAusschalten();
+            bremseLäuft = true; if (treppenModus) stoppeTreppe(); stoppeAlarm(); allesAusschalten();
             rText.innerText = "🛑 BREMSE!"; document.body.style.backgroundColor = "#ff1111";
             if (!audioCtx) return;
             const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
@@ -309,18 +301,29 @@
         }
         function stoppeBremse() { bremseLäuft = false; allesAusschalten(); }
 
-        function starteAutonom() {
-            autonomModus = true; stoppeAlarm(); allesAusschalten(); rText.innerText = "🤖 AUTONOM";
-            autonomInterval = setInterval(() => {
-                const aktionen = ['VORWÄRTS', 'LINKS', 'RECHTS', 'HUPE']; const zufall = aktionen[Math.floor(Math.random() * aktionen.length)];
-                allesAusschalten();
-                if (zufall === 'VORWÄRTS') zeigeRichtung('🤖 AUTONOM: VOR', '#004d00');
-                if (zufall === 'LINKS') { zeigeRichtung('🤖 AUTONOM: LINKS', '#111'); blinkerLinks = true; document.body.classList.add('blinker-links-aktiv'); starteBlinkerSound(); }
-                if (zufall === 'RECHTS') { zeigeRichtung('🤖 AUTONOM: RECHTS', '#111'); blinkerRechts = true; document.body.classList.add('blinker-rechts-aktiv'); starteBlinkerSound(); }
-                if (zufall === 'HUPE') { starteHupe(); setTimeout(stoppeHupe, 300); }
-            }, 1200);
+        // --- TREPPENSTEIGEN MODUS ---
+        function starteTreppe() {
+            treppenModus = true; stoppeAlarm(); allesAusschalten();
+            rText.innerText = "🧗 TREPPENSTEIGEN";
+            document.body.style.backgroundColor = "#ffffff";
+            document.body.style.color = "#000000";
+
+            if (!audioCtx) return;
+            oscillatorTreppe = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            oscillatorTreppe.type = 'triangle';
+            oscillatorTreppe.frequency.setValueAtTime(90, audioCtx.currentTime); // Tiefes Summen für Mechanik
+            gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            oscillatorTreppe.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            oscillatorTreppe.start();
         }
-        function stoppeAutonom() { autonomModus = false; clearInterval(autonomInterval); allesAusschalten(); }
+        function stoppeTreppe() {
+            treppenModus = false;
+            document.body.style.color = "#ffffff";
+            if (oscillatorTreppe) { try { oscillatorTreppe.stop(); } catch(e) {} }
+            allesAusschalten();
+        }
 
         function starteBlinkerSound() { clearInterval(blinkerInterval); spieleKlickTon(); blinkerInterval = setInterval(spieleKlickTon, 400); }
         function spieleKlickTon() {
@@ -337,7 +340,7 @@
             oscillatorHupe.type = 'triangle'; oscillatorHupe.frequency.setValueAtTime(220, audioCtx.currentTime); gainNode.gain.setValueAtTime(0.4, audioCtx.currentTime);
             oscillatorHupe.connect(gainNode); gainNode.connect(audioCtx.destination); oscillatorHupe.start();
         }
-        function stoppeHupe() { hupeLäuft = false; if(!alarmLäuft) rText.innerText = "•"; if (oscillatorHupe) { try { oscillatorHupe.stop(); } catch(e) {} } }
+        function stoppeHupe() { hupeLäuft = false; if(!alarmLäuft && !treppenModus) rText.innerText = "•"; if (oscillatorHupe) { try { oscillatorHupe.stop(); } catch(e) {} } }
 
         function starteAlarm() {
             alarmLäuft = true; document.body.classList.add('alarm-aktiv'); rText.innerText = "🚨 ALARM 🚨";
