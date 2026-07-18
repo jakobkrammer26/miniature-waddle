@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-select=none">
-    <title>Roboter-Steuerung mit Überlastungswarnung</title>
+    <title>Roboter Fernsteuerung - Freier Text-Antwort</title>
     <style>
         body {
             margin: 0;
@@ -42,25 +42,11 @@
         }
         .blinker-rechts-aktiv { animation: blinkenRechts 0.6s infinite steps(1); }
 
-        /* ⚠️ DEINE DESIGN-ANIMATION FÜR DIE ÜBERLASTUNG (Vom iPad genutzt) ⚠️ */
-        @keyframes blinkBg {
-            0% { background-color: #000000; }
-            100% { background-color: #4a0000; }
-        }
-        @keyframes blinkText {
-            0% { color: #ff0000; text-shadow: 0 0 20px #ff0000; }
-            100% { color: #ffff00; text-shadow: 0 0 40px #ffff00; }
-        }
-        .ueberlast-aktiv {
-            animation: blinkBg 0.5s infinite alternate !important;
-            color: #ff0000 !important;
-        }
-        .ueberlast-aktiv #richtungs-text {
-            font-size: 8vw !important;
-            text-transform: uppercase;
-            letter-spacing: 5px;
-            animation: blinkText 0.5s infinite alternate !important;
-        }
+        /* ⚠️ Überlastungs-Design */
+        @keyframes blinkBg { 0% { background-color: #000000; } 100% { background-color: #4a0000; } }
+        @keyframes blinkText { 0% { color: #ff0000; text-shadow: 0 0 20px #ff0000; } 100% { color: #ffff00; text-shadow: 0 0 40px #ffff00; } }
+        .ueberlast-aktiv { animation: blinkBg 0.5s infinite alternate !important; color: #ff0000 !important; }
+        .ueberlast-aktiv #richtungs-text { font-size: 8vw !important; text-transform: uppercase; letter-spacing: 5px; animation: blinkText 0.5s infinite alternate !important; }
 
         .auswahl-box { text-align: center; }
         .auswahl-box button {
@@ -73,76 +59,60 @@
         
         #status { position: absolute; top: 15px; color: #666; font-size: 0.9rem; font-family: Arial, sans-serif; cursor: pointer; z-index: 200; }
 
-        /* --- FRAGE-SYSTEM --- */
+        /* --- FRAGE-OVERLAY AUF DEM IPAD --- */
         #frage-overlay {
             display: none; background: rgba(0,0,0,0.95);
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             flex-direction: column; justify-content: center; align-items: center; z-index: 100;
         }
-        #frage-titel { font-size: 3rem; margin-bottom: 30px; padding: 0 20px; text-align: center; }
-        .antwort-box { display: flex; gap: 30px; }
-        .btn-antwort { padding: 25px 60px; font-size: 2.5rem; border: none; border-radius: 20px; font-weight: bold; cursor: pointer; }
-        .btn-ja { background-color: #28a745; color: white; }
-        .btn-nein { background-color: #dc3545; color: white; }
+        #frage-titel { font-size: 3rem; margin-bottom: 25px; padding: 0 20px; text-align: center; }
+        .antwort-box { display: flex; gap: 30px; max-width: 90%; flex-wrap: wrap; justify-content: center; margin-bottom: 30px; }
+        .btn-antwort {
+            padding: 20px 35px; font-size: 1.8rem; border: none; border-radius: 20px; font-weight: bold; cursor: pointer; color: white; min-width: 180px;
+        }
+        #btnOpt1 { background-color: #28a745; }
+        #btnOpt2 { background-color: #dc3545; }
 
-        /* --- CONTROLLER BEREICH --- */
+        /* Neues Tippfeld für das iPad */
+        .ipad-tipp-box {
+            display: flex; gap: 15px; width: 80%; max-width: 600px; background-color: #222; padding: 15px; border-radius: 20px;
+        }
+        .ipad-input {
+            flex: 1; padding: 15px; font-size: 1.3rem; border-radius: 12px; border: none; background-color: #444; color: white; font-family: Arial, sans-serif;
+        }
+        .btn-ipad-senden {
+            background-color: #007bff; color: white; border: none; padding: 15px 25px; font-size: 1.2rem; font-weight: bold; border-radius: 12px; cursor: pointer;
+        }
+
+        /* --- CONTROLLER DESIGN (HANDY) --- */
         #controller-bereich {
-            display: none;
-            flex-direction: column;
-            width: 100vw;
-            height: 100vh;
-            box-sizing: border-box;
-            padding: 10px;
-            gap: 10px;
+            display: none; flex-direction: column; width: 100vw; height: 100vh; box-sizing: border-box; padding: 10px; gap: 10px;
         }
 
-        .top-bar { display: flex; gap: 10px; height: 60px; }
-        .frage-sender-box {
-            flex: 1; background-color: #222; padding: 5px 10px; border-radius: 15px;
-            display: flex; gap: 10px; align-items: center;
+        .frage-sender-block {
+            background-color: #222; padding: 10px; border-radius: 15px; display: flex; flex-direction: column; gap: 8px;
         }
-        .frage-input { flex: 1; padding: 10px; font-size: 1rem; border-radius: 10px; border: none; background-color: #444; color: white; }
-        .btn-senden { background-color: #6f42c1; color: white; border: none; padding: 10px 15px; font-weight: bold; border-radius: 10px; }
+        .frage-zeile-1 { display: flex; gap: 8px; }
+        .frage-zeile-2 { display: flex; gap: 8px; }
+        .frage-input { flex: 1; padding: 10px; font-size: 1rem; border-radius: 8px; border: none; background-color: #444; color: white; font-family: Arial, sans-serif; }
+        .opt-input { flex: 1; padding: 6px 10px; font-size: 0.85rem; border-radius: 6px; border: none; background-color: #555; color: white; font-family: Arial, sans-serif; }
+        .btn-senden { background-color: #6f42c1; color: white; border: none; padding: 10px 15px; font-weight: bold; border-radius: 8px; cursor: pointer; }
+        
         .info-bar { text-align: center; font-size: 1.1rem; color: #ffc107; font-family: Arial, sans-serif; height: 25px; font-weight: bold; }
+        .mega-bremse { background-color: #ff1111; color: white; font-size: 1.8rem; font-weight: bold; text-align: center; padding: 15px; border-radius: 15px; cursor: pointer; }
 
-        .mega-bremse {
-            background-color: #ff1111; color: white; font-size: 1.8rem; font-weight: bold;
-            text-align: center; padding: 15px; border-radius: 15px; cursor: pointer;
-        }
-
-        .fahr-zone {
-            flex: 1;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-        }
-
+        .fahr-zone { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; flex: 1; }
         .lenk-seite, .fahr-seite { display: flex; flex-direction: column; gap: 15px; }
 
         .riesen-btn {
-            flex: 1; display: flex; justify-content: center; align-items: center;
-            font-size: 3rem; border-radius: 25px; cursor: pointer;
-            background-color: #333; box-shadow: inset 0 -8px rgba(0,0,0,0.3);
+            flex: 1; display: flex; justify-content: center; align-items: center; font-size: 3rem; border-radius: 25px; cursor: pointer; background-color: #333; box-shadow: inset 0 -8px rgba(0,0,0,0.3);
         }
-
-        .btn-links { background-color: #4B0082; }
-        .btn-rechts { background-color: #4A3B00; }
-        .btn-vorwaerts { background-color: #28a745; font-size: 4rem; }
-        .btn-rueckwaerts { background-color: #ffc107; color: black; font-size: 4rem; }
+        .btn-links { background-color: #4B0082; } .btn-rechts { background-color: #4A3B00; } .btn-vorwaerts { background-color: #28a745; font-size: 4rem; } .btn-rueckwaerts { background-color: #ffc107; color: black; font-size: 4rem; }
 
         .unten-bar { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; height: 85px; }
-        .kleiner-btn {
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-            font-size: 1.3rem; background-color: #222; border-radius: 15px; cursor: pointer;
-        }
+        .kleiner-btn { display: flex; flex-direction: column; justify-content: center; align-items: center; font-size: 1.3rem; background-color: #222; border-radius: 15px; cursor: pointer; }
         .kleiner-btn span { font-size: 0.75rem; margin-top: 5px; font-family: Arial, sans-serif; font-weight: bold; }
-        
-        .btn-b-l { background-color: #ff8800; }
-        .btn-b-r { background-color: #ff8800; }
-        .btn-t { background-color: #17a2b8; }
-        .btn-s { background-color: #dc3545; }
-        .btn-u { background-color: #6f42c1; } /* Überlast-Knopf */
-
+        .btn-b-l { background-color: #ff8800; } .btn-b-r { background-color: #ff8800; } .btn-t { background-color: #17a2b8; } .btn-s { background-color: #dc3545; } .btn-u { background-color: #6f42c1; }
         .btn-hupe { background-color: #007bff; height: 70px; font-size: 1.5rem; box-shadow: inset 0 -8px rgba(0,0,0,0.3); }
 
         .toggle-aktiv { background-color: #fff !important; color: #000 !important; box-shadow: inset 0 6px rgba(0,0,0,0.4) !important; }
@@ -160,10 +130,14 @@
     </div>
 
     <div id="controller-bereich">
-        <div class="top-bar">
-            <div class="frage-sender-box">
-                <input type="text" id="frageInput" class="frage-input" placeholder="Frage eintippen...">
-                <button class="btn-senden" onclick="sendeFrage()">Senden</button>
+        <div class="frage-sender-block">
+            <div class="frage-zeile-1">
+                <input type="text" id="frageInput" class="frage-input" placeholder="Deine Frage hier eintippen...">
+                <button class="btn-senden" onclick="sendeEigeneFrage()">Senden</button>
+            </div>
+            <div class="frage-zeile-2">
+                <input type="text" id="opt1Input" class="opt-input" placeholder="Knopf 1 (leerlassen für JA)">
+                <input type="text" id="opt2Input" class="opt-input" placeholder="Knopf 2 (leerlassen für NEIN)">
             </div>
         </div>
         <div class="info-bar" id="antwort-rueckmeldung"></div>
@@ -199,9 +173,15 @@
 
     <div id="frage-overlay">
         <div id="frage-titel">Frage?</div>
+        
         <div class="antwort-box">
-            <button class="btn-antwort btn-ja" onclick="antworte('JA')">JA 👍</button>
-            <button class="btn-antwort btn-nein" onclick="antworte('NEIN')">NEIN 👎</button>
+            <button class="btn-antwort" id="btnOpt1" onclick="antworteSpezifisch(1)">JA 👍</button>
+            <button class="btn-antwort" id="btnOpt2" onclick="antworteSpezifisch(2)">NEIN 👎</button>
+        </div>
+
+        <div class="ipad-tipp-box">
+            <input type="text" id="ipadTextInput" class="ipad-input" placeholder="Oder tippe eine eigene Antwort...">
+            <button class="btn-ipad-senden" onclick="antworteFreitext()">Senden</button>
         </div>
     </div>
 
@@ -214,10 +194,8 @@
         let oscillatorHupe = null, hupeLäuft = false;
         let blinkerInterval = null, blinkerLinks = false, blinkerRechts = false;
         let oscillatorTreppe = null, treppenModus = false;
-        let bremseLäuft = false;
-        let ueberlastModus = false; // Neuer Status für Überlastung
+        let bremseLäuft = false; let ueberlastModus = false;
 
-        // Controller Zustände
         let ctrlVor = false; let ctrlZurueck = false; let ctrlLinks = false; let ctrlRechts = false;
         let ctrlTreppe = false; let ctrlSirene = false; let ctrlBlinkerL = false; let ctrlBlinkerR = false;
         let ctrlHupe = false; let ctrlUeberlast = false;
@@ -234,11 +212,7 @@
                 peer = new Peer(RAUM_ID);
                 document.getElementById('anzeige-bereich').style.display = 'block';
                 peer.on('open', () => { document.getElementById('status').innerText = "📡 Signal aktiv! Klicke hier für Überlast-Test."; });
-                peer.on('connection', (conn) => {
-                    verbindung = conn;
-                    document.getElementById('status').innerText = "🟢 Gekoppelt! (Klicke hier für Überlast)";
-                    setupEmpfaengerDaten();
-                });
+                peer.on('connection', (conn) => { verbindung = conn; document.getElementById('status').innerText = "🟢 Gekoppelt!"; setupEmpfaengerDaten(); });
                 document.getElementById('anzeige-bereich').addEventListener('click', async () => {
                     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                     if (audioCtx.state === 'suspended') await audioCtx.resume();
@@ -251,21 +225,39 @@
                 peer.on('open', () => {
                     document.getElementById('status').innerText = "Suche iPad...";
                     verbindung = peer.connect(RAUM_ID);
-                    verbindung.on('open', () => { 
-                        document.getElementById('status').innerText = "🟢 Gekoppelt!"; 
-                        setupControllerEmpfang();
-                    });
+                    verbindung.on('open', () => { document.getElementById('status').innerText = "🟢 Gekoppelt!"; setupControllerEmpfang(); });
                 });
             }
         }
 
-        function sende(befehl) {
-            if (meineRolle === 'controller' && verbindung && verbindung.open) { verbindung.send(befehl); }
+        function sende(befehl) { if (meineRolle === 'controller' && verbindung && verbindung.open) { verbindung.send(befehl); } }
+
+        // --- HANDY FUNKTIONEN ---
+        function sendeEigeneFrage() {
+            const frageText = document.getElementById('frageInput').value;
+            let o1 = document.getElementById('opt1Input').value || "JA 👍";
+            let o2 = document.getElementById('opt2Input').value || "NEIN 👎";
+            if(!frageText) return;
+
+            const paket = { typ: "CUSTOM_FRAGE", frage: frageText, opt1: o1, opt2: o2 };
+            sende(JSON.stringify(paket));
+            document.getElementById('antwort-rueckmeldung').innerText = "Frage gesendet... Warte auf Antwort.";
+            document.getElementById('frageInput').value = "";
         }
 
-        // --- FUNKTIONEN FÜR DAS HANDY ---
+        function setupControllerEmpfang() {
+            verbindung.on('data', (daten) => {
+                if (daten.startsWith("ERGEBNIS:")) {
+                    const gewaehlteAntwort = daten.substring(9);
+                    document.getElementById('antwort-rueckmeldung').innerHTML = "iPad sagt: <span style='color:#007bff; font-weight:bold;'>" + gewaehlteAntwort + "</span>";
+                }
+                if (daten === 'ROBOTER_UEBERLAST_AN') { ctrlUeberlast = true; document.getElementById('ueberlastBtn').classList.add('toggle-aktiv'); document.getElementById('antwort-rueckmeldung').innerText = "⚠️ ROBOTER ÜBERLASTET!"; }
+                if (daten === 'ROBOTER_UEBERLAST_AUS') { ctrlUeberlast = false; document.getElementById('ueberlastBtn').classList.remove('toggle-aktiv'); document.getElementById('antwort-rueckmeldung').innerText = ""; }
+            });
+        }
+
         function klickeRichtung(richtung) {
-            if(ctrlUeberlast) return; // Gesperrt bei Überlastung
+            if(ctrlUeberlast) return;
             if (richtung === 'VOR') {
                 ctrlZurueck = false; document.getElementById('zurueckBtn').classList.remove('toggle-aktiv');
                 ctrlVor = !ctrlVor; document.getElementById('vorBtn').classList.toggle('toggle-aktiv', ctrlVor);
@@ -287,140 +279,67 @@
                 if (ctrlRechts) { ctrlVor = false; ctrlZurueck = false; resetFahrButtons(); sende('RECHTS'); } else { sende('STOP_FAHREN'); }
             }
         }
-
         function resetFahrButtons() { document.getElementById('vorBtn').classList.remove('toggle-aktiv'); document.getElementById('zurueckBtn').classList.remove('toggle-aktiv'); }
         function resetLenkButtons() { document.getElementById('linksBtn').classList.remove('toggle-aktiv'); document.getElementById('rechtsBtn').classList.remove('toggle-aktiv'); }
-
-        function klickeHupe() {
-            if(ctrlUeberlast) return;
-            ctrlHupe = !ctrlHupe; document.getElementById('hupeBtn').classList.toggle('toggle-aktiv', ctrlHupe);
-            if (ctrlHupe) sende('HUPE_AN'); else sende('HUPE_AUS');
-        }
-
-        function klickeUeberlast() {
-            ctrlUeberlast = !ctrlUeberlast;
-            document.getElementById('ueberlastBtn').classList.toggle('toggle-aktiv', ctrlUeberlast);
-            if(ctrlUeberlast) {
-                sende('UEBERLAST_AN');
-                document.getElementById('antwort-rueckmeldung').innerText = "⚠️ ROBOTER ÜBERLASTET!";
-            } else {
-                sende('UEBERLAST_AUS');
-                document.getElementById('antwort-rueckmeldung').innerText = "";
-            }
-        }
-
-        function klickeBremse() {
-            if(ctrlUeberlast) return;
-            ctrlVor = false; ctrlZurueck = false; ctrlLinks = false; ctrlRechts = false;
-            ctrlBlinkerL = false; ctrlBlinkerR = false; ctrlTreppe = false; ctrlSirene = false; ctrlHupe = false;
-            resetFahrButtons(); resetLenkButtons();
-            document.getElementById('blinkerLBtn').classList.remove('toggle-aktiv');
-            document.getElementById('blinkerRBtn').classList.remove('toggle-aktiv');
-            document.getElementById('treppeBtn').classList.remove('toggle-aktiv');
-            document.getElementById('sireneBtn').classList.remove('toggle-aktiv');
-            document.getElementById('hupeBtn').classList.remove('toggle-aktiv');
-            sende('BREMSE_AN');
-            setTimeout(() => { sende('BREMSE_AUS'); }, 500);
-        }
-
-        function klickeBlinker(richtung) {
-            if(ctrlUeberlast) return;
-            if (richtung === 'L') {
-                ctrlBlinkerR = false; document.getElementById('blinkerRBtn').classList.remove('toggle-aktiv');
-                ctrlBlinkerL = !ctrlBlinkerL; document.getElementById('blinkerLBtn').classList.toggle('toggle-aktiv', ctrlBlinkerL);
-                if (ctrlBlinkerL) sende('BLINKER_L'); else sende('STOP_BLINKER');
-            } else {
-                ctrlBlinkerL = false; document.getElementById('blinkerLBtn').classList.remove('toggle-aktiv');
-                ctrlBlinkerR = !ctrlBlinkerR; document.getElementById('blinkerRBtn').classList.toggle('toggle-aktiv', ctrlBlinkerR);
-                if (ctrlBlinkerR) sende('BLINKER_R'); else sende('STOP_BLINKER');
-            }
-        }
-
+        function klickeHupe() { if(ctrlUeberlast) return; ctrlHupe = !ctrlHupe; document.getElementById('hupeBtn').classList.toggle('toggle-aktiv', ctrlHupe); if (ctrlHupe) sende('HUPE_AN'); else sende('HUPE_AUS'); }
+        function klickeUeberlast() { ctrlUeberlast = !ctrlUeberlast; document.getElementById('ueberlastBtn').classList.toggle('toggle-aktiv', ctrlUeberlast); if(ctrlUeberlast) { sende('UEBERLAST_AN'); document.getElementById('antwort-rueckmeldung').innerText = "⚠️ ROBOTER ÜBERLASTET!"; } else { sende('UEBERLAST_AUS'); document.getElementById('antwort-rueckmeldung').innerText = ""; } }
+        function klickeBremse() { if(ctrlUeberlast) return; ctrlVor = false; ctrlZurueck = false; ctrlLinks = false; ctrlRechts = false; ctrlBlinkerL = false; ctrlBlinkerR = false; ctrlTreppe = false; ctrlSirene = false; ctrlHupe = false; resetFahrButtons(); resetLenkButtons(); document.getElementById('blinkerLBtn').classList.remove('toggle-aktiv'); document.getElementById('blinkerRBtn').classList.remove('toggle-aktiv'); document.getElementById('treppeBtn').classList.remove('toggle-aktiv'); document.getElementById('sireneBtn').classList.remove('toggle-aktiv'); document.getElementById('hupeBtn').classList.remove('toggle-aktiv'); sende('BREMSE_AN'); setTimeout(() => { sende('BREMSE_AUS'); }, 500); }
+        function klickeBlinker(richtung) { if(ctrlUeberlast) return; if (richtung === 'L') { ctrlBlinkerR = false; document.getElementById('blinkerRBtn').classList.remove('toggle-aktiv'); ctrlBlinkerL = !ctrlBlinkerL; document.getElementById('blinkerLBtn').classList.toggle('toggle-aktiv', ctrlBlinkerL); if (ctrlBlinkerL) sende('BLINKER_L'); else sende('STOP_BLINKER'); } else { ctrlBlinkerL = false; document.getElementById('blinkerLBtn').classList.remove('toggle-aktiv'); ctrlBlinkerR = !ctrlBlinkerR; document.getElementById('blinkerRBtn').classList.toggle('toggle-aktiv', ctrlBlinkerR); if (ctrlBlinkerR) sende('BLINKER_R'); else sende('STOP_BLINKER'); } }
         function klickeTreppe() { if(ctrlUeberlast) return; ctrlTreppe = !ctrlTreppe; document.getElementById('treppeBtn').classList.toggle('toggle-aktiv', ctrlTreppe); sende('TREPPE'); }
         function klickeSirene() { if(ctrlUeberlast) return; ctrlSirene = !ctrlSirene; document.getElementById('sireneBtn').classList.toggle('toggle-aktiv', ctrlSirene); sende('SIRENE'); }
-        function sendeFrage() { if(ctrlUeberlast) return; const text = document.getElementById('frageInput').value; if(!text) return; sende("FRAGE:" + text); document.getElementById('antwort-rueckmeldung').innerText = "Frage gesendet..."; document.getElementById('frageInput').value = ""; }
 
-        function setupControllerEmpfang() {
-            verbindung.on('data', (daten) => {
-                if (daten.startsWith("ANTWORT:")) {
-                    const antwort = daten.split(":")[1];
-                    const rueckmeldung = document.getElementById('antwort-rueckmeldung');
-                    if(antwort === 'JA') rueckmeldung.innerHTML = "iPad sagt: <span style='color:#28a745; font-weight:bold;'>JA 👍</span>";
-                    else rueckmeldung.innerHTML = "iPad sagt: <span style='color:#dc3545; font-weight:bold;'>NEIN 👎</span>";
-                }
-                // Falls das iPad selbst meldet, dass es überlastet ist
-                if (daten === 'ROBOTER_UEBERLAST_AN') {
-                    ctrlUeberlast = true;
-                    document.getElementById('ueberlastBtn').classList.add('toggle-aktiv');
-                    document.getElementById('antwort-rueckmeldung').innerText = "⚠️ ROBOTER ÜBERLASTET!";
-                }
-                if (daten === 'ROBOTER_UEBERLAST_AUS') {
-                    ctrlUeberlast = false;
-                    document.getElementById('ueberlastBtn').classList.remove('toggle-aktiv');
-                    document.getElementById('antwort-rueckmeldung').innerText = "";
-                }
-            });
+        // --- IPAD ANTWORT-STEUERUNG ---
+        function antworteSpezifisch(nummer) {
+            document.getElementById('frage-overlay').style.display = 'none';
+            const gewaehlterText = document.getElementById('btnOpt' + nummer).innerText;
+            if (verbindung && verbindung.open) verbindung.send("ERGEBNIS:" + gewaehlterText);
         }
 
-        function antworte(wert) { document.getElementById('frage-overlay').style.display = 'none'; if (verbindung && verbindung.open) { verbindung.send("ANTWORT:" + wert); } }
+        // NEU: Freitext-Antwort vom iPad absenden
+        function antworteFreitext() {
+            const text = document.getElementById('ipadTextInput').value;
+            if(!text) return;
+            document.getElementById('frage-overlay').style.display = 'none';
+            document.getElementById('ipadTextInput').value = ""; // Textfeld leeren
+            if (verbindung && verbindung.open) verbindung.send("ERGEBNIS:" + text);
+        }
 
-        // --- FUNKTION FÜR DAS IPAD (Selbstauslöser) ---
         function roboterUeberlastSchalter() {
             if(meineRolle !== 'anzeige') return;
-            if(!ueberlastModus) {
-                starteUeberlastung();
-                if(verbindung && verbindung.open) verbindung.send('ROBOTER_UEBERLAST_AN');
-            } else {
-                stoppeUeberlastung();
-                if(verbindung && verbindung.open) verbindung.send('ROBOTER_UEBERLAST_AUS');
-            }
+            if(!ueberlastModus) { starteUeberlastung(); if(verbindung && verbindung.open) verbindung.send('ROBOTER_UEBERLAST_AN'); } 
+            else { stoppeUeberlastung(); if(verbindung && verbindung.open) verbindung.send('ROBOTER_UEBERLAST_AUS'); }
         }
 
         function starteUeberlastung() {
-            ueberlastModus = true;
-            stoppeAlarm(); stoppeHupe(); stoppeTreppe();
-            blinkerLinks = false; blinkerRechts = false;
-            document.body.classList.remove('blinker-links-aktiv', 'blinker-rechts-aktiv', 'alarm-aktiv');
-            clearInterval(blinkerInterval);
-
-            // Aktiviert das rot-gelb blinkende Warn-Design aus deinem Code!
-            document.body.classList.add('ueberlast-aktiv');
-            rText.innerText = "Überlastet";
-            
-            // Fieser Alarmton für Überlastung
-            if(audioCtx) {
-                const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
-                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, audioCtx.currentTime);
-                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-                osc.connect(gain); gain.connect(audioCtx.destination);
-                osc.start(); osc.stop(audioCtx.currentTime + 0.5);
-            }
+            ueberlastModus = true; stoppeAlarm(); stoppeHupe(); stoppeTreppe(); blinkerLinks = false; blinkerRechts = false;
+            document.body.classList.remove('blinker-links-aktiv', 'blinker-rechts-aktiv', 'alarm-aktiv'); clearInterval(blinkerInterval);
+            document.body.classList.add('ueberlast-aktiv'); rText.innerText = "Überlastet";
+            if(audioCtx) { const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain(); osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, audioCtx.currentTime); gain.gain.setValueAtTime(0.3, audioCtx.currentTime); osc.connect(gain); gain.connect(audioCtx.destination); osc.start(); osc.stop(audioCtx.currentTime + 0.5); }
         }
+        function stoppeUeberlastung() { ueberlastModus = false; document.body.classList.remove('ueberlast-aktiv'); document.body.style.backgroundColor = '#111'; rText.innerText = "•"; }
 
-        function stoppeUeberlastung() {
-            ueberlastModus = false;
-            document.body.classList.remove('ueberlast-aktiv');
-            document.body.style.backgroundColor = '#111';
-            rText.innerText = "•";
-        }
-
-        // --- IPAD EMPFÄNGER FUNKTIONEN ---
+        // --- IPAD EMPFÄNGER LOGIK ---
         function setupEmpfaengerDaten() {
             verbindung.on('data', (befehl) => {
                 if (befehl === 'UEBERLAST_AN') { starteUeberlastung(); return; }
                 if (befehl === 'UEBERLAST_AUS') { stoppeUeberlastung(); return; }
+                if (ueberlastModus) return;
 
-                if (ueberlastModus) return; // Wenn überlastet, ignoriere alle anderen Befehle!
-
-                if (befehl.startsWith("FRAGE:")) {
-                    const frageText = befehl.substring(6);
-                    document.getElementById('frage-titel').innerText = frageText;
-                    document.getElementById('frage-overlay').style.display = 'flex';
-                    if (audioCtx) {
-                        const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
-                        osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-                        osc.connect(gain); gain.connect(audioCtx.destination); osc.start(); osc.stop(audioCtx.currentTime + 0.15);
-                    }
+                if (typeof befehl === "string" && befehl.includes("CUSTOM_FRAGE")) {
+                    try {
+                        const daten = JSON.parse(befehl);
+                        document.getElementById('frage-titel').innerText = daten.frage;
+                        document.getElementById('btnOpt1').innerText = daten.opt1;
+                        document.getElementById('btnOpt2').innerText = daten.opt2;
+                        
+                        document.getElementById('frage-overlay').style.display = 'flex';
+                        
+                        if (audioCtx) {
+                            const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+                            osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                            osc.connect(gain); gain.connect(audioCtx.destination); osc.start(); osc.stop(audioCtx.currentTime + 0.15);
+                        }
+                    } catch(e) {}
                     return;
                 }
 
@@ -438,14 +357,8 @@
                 if (befehl === 'HUPE_AN' && !hupeLäuft) starteHupe();
                 if (befehl === 'HUPE_AUS') stoppeHupe();
                 
-                if (befehl === 'BLINKER_L') { 
-                    blinkerRechts = false; document.body.classList.remove('blinker-rechts-aktiv');
-                    blinkerLinks = true; document.body.classList.add('blinker-links-aktiv'); rText.innerText = "⬅️ BLINKER L"; starteBlinkerSound(); 
-                }
-                if (befehl === 'BLINKER_R') { 
-                    blinkerLinks = false; document.body.classList.remove('blinker-links-aktiv');
-                    blinkerRechts = true; document.body.classList.add('blinker-rechts-aktiv'); rText.innerText = "BLINKER R ➡️"; starteBlinkerSound(); 
-                }
+                if (befehl === 'BLINKER_L') { blinkerRechts = false; document.body.classList.remove('blinker-rechts-aktiv'); blinkerLinks = true; document.body.classList.add('blinker-links-aktiv'); rText.innerText = "⬅️ BLINKER L"; starteBlinkerSound(); }
+                if (befehl === 'BLINKER_R') { blinkerLinks = false; document.body.classList.remove('blinker-links-aktiv'); blinkerRechts = true; document.body.classList.add('blinker-rechts-aktiv'); rText.innerText = "BLINKER R ➡️"; starteBlinkerSound(); }
                 if (befehl === 'STOP_BLINKER') allesAusschalten();
                 if (befehl === 'SIRENE') { if (!alarmLäuft) starteAlarm(); else stoppeAlarm(); }
             });
@@ -455,7 +368,7 @@
         function allesAusschalten() { if(ueberlastModus) return; blinkerLinks = false; blinkerRechts = false; document.body.style.backgroundColor = '#111'; rText.innerText = "•"; document.body.classList.remove('blinker-links-aktiv', 'blinker-rechts-aktiv'); clearInterval(blinkerInterval); }
 
         function starteBremse() {
-            bremseLäuft = true; if (treppenModus) stoppeTreppe(); stoppeAlarm(); stoppeHupe(); allesAusschalten();
+            bremseLäuft = true; if (treppenModus) stoppePreppe(); stoppeAlarm(); stoppeHupe(); allesAusschalten();
             rText.innerText = "🛑 ALL-STOP / BREMSE"; document.body.style.backgroundColor = "#ff1111";
             if (!audioCtx) return;
             const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
@@ -465,21 +378,12 @@
         }
         function stoppeBremse() { bremseLäuft = false; allesAusschalten(); }
 
-        function starteTreppe() {
-            treppenModus = true; stoppeAlarm(); allesAusschalten(); rText.innerText = "🧗 TREPPENSTEIGEN"; document.body.style.backgroundColor = "#ffffff"; document.body.style.color = "#000000";
-            if (!audioCtx) return;
-            oscillatorTreppe = audioCtx.createOscillator(); const gainNode = audioCtx.createGain();
-            oscillatorTreppe.type = 'triangle'; oscillatorTreppe.frequency.setValueAtTime(90, audioCtx.currentTime); gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
-            oscillatorTreppe.connect(gainNode); gainNode.connect(audioCtx.destination); oscillatorTreppe.start();
-        }
+        function starteTreppe() { treppenModus = true; stoppeAlarm(); allesAusschalten(); rText.innerText = "🧗 TREPPENSTEIGEN"; document.body.style.backgroundColor = "#ffffff"; document.body.style.color = "#000000"; if (!audioCtx) return; oscillatorTreppe = audioCtx.createOscillator(); const gainNode = audioCtx.createGain(); oscillatorTreppe.type = 'triangle'; oscillatorTreppe.frequency.setValueAtTime(90, audioCtx.currentTime); gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime); oscillatorTreppe.connect(gainNode); gainNode.connect(audioCtx.destination); oscillatorTreppe.start(); }
         function stoppeTreppe() { treppenModus = false; document.body.style.color = "#ffffff"; if (oscillatorTreppe) { try { oscillatorTreppe.stop(); } catch(e) {} } allesAusschalten(); }
-
         function starteBlinkerSound() { clearInterval(blinkerInterval); spieleKlickTon(); blinkerInterval = setInterval(spieleKlickTon, 400); }
         function spieleKlickTon() { if (!audioCtx) return; const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain(); osc.type = 'triangle'; osc.frequency.setValueAtTime(120, audioCtx.currentTime); gain.gain.setValueAtTime(0.2, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.05); osc.connect(gain); gain.connect(audioCtx.destination); osc.start(); osc.stop(audioCtx.currentTime + 0.06); }
-
         function starteHupe() { if (!audioCtx) return; hupeLäuft = true; if(!alarmLäuft) rText.innerText = "📯 HUUP!"; oscillatorHupe = audioCtx.createOscillator(); const gainNode = audioCtx.createGain(); oscillatorHupe.type = 'triangle'; oscillatorHupe.frequency.setValueAtTime(220, audioCtx.currentTime); gainNode.gain.setValueAtTime(0.4, audioCtx.currentTime); oscillatorHupe.connect(gainNode); gainNode.connect(audioCtx.destination); oscillatorHupe.start(); }
         function stoppeHupe() { hupeLäuft = false; if(!alarmLäuft && !treppenModus && !ueberlastModus) rText.innerText = "•"; if (oscillatorHupe) { try { oscillatorHupe.stop(); } catch(e) {} } }
-
         function starteAlarm() { alarmLäuft = true; document.body.classList.add('alarm-aktiv'); rText.innerText = "🚨 ALARM 🚨"; if (!audioCtx) return; oscillatorSirene = audioCtx.createOscillator(); const gainNode = audioCtx.createGain(); oscillatorSirene.type = 'sawtooth'; oscillatorSirene.frequency.setValueAtTime(650, audioCtx.currentTime); gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime); oscillatorSirene.connect(gainNode); gainNode.connect(audioCtx.destination); oscillatorSirene.start(); let hoch = true; sirenenInterval = setInterval(() => { const frequenz = hoch ? 850 : 550; oscillatorSirene.frequency.linearRampToValueAtTime(frequenz, audioCtx.currentTime + 0.1); hoch = !hoch; }, 300); }
         function stoppeAlarm() { alarmLäuft = false; clearInterval(sirenenInterval); document.body.classList.remove('alarm-aktiv'); if (oscillatorSirene) { try { oscillatorSirene.stop(); } catch(e) {} } allesAusschalten(); }
     </script>
