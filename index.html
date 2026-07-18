@@ -63,7 +63,6 @@
             gap: 15px;
         }
 
-        /* Riesiger Bremsknopf */
         .haupt-bremse {
             background-color: #ff1111;
             color: white;
@@ -81,7 +80,6 @@
             background-color: #cc0000;
         }
 
-        /* Das intuitive Steuerkreuz */
         .steuer-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -106,7 +104,6 @@
             background-color: #444;
         }
 
-        /* Spezialfarben für die Tasten */
         .btn-vor { background-color: #28a745; box-shadow: 0 6px #1e7e34; }
         .btn-vor:active { background-color: #1e7e34; }
         
@@ -114,7 +111,6 @@
         .btn-zurueck:active { background-color: #d39e00; }
 
         .btn-blinker { background-color: #ff8800; font-size: 1.2rem; box-shadow: 0 6px #cc6600; }
-        .btn-blinker:active { background-color: #cc6600; }
 
         .btn-hupe { background-color: #007bff; grid-column: span 3; height: 75px; font-size: 1.6rem; box-shadow: 0 6px #0056b3; }
         .btn-hupe:active { background-color: #0056b3; }
@@ -122,7 +118,7 @@
         .btn-autonom { background-color: #6f42c1; font-size: 1.2rem; box-shadow: 0 6px #5a32a3; }
         .btn-sirene { background-color: #dc3545; font-size: 1.2rem; box-shadow: 0 6px #bd2130; }
 
-        /* Aktiv-Zustand für Umschalter */
+        /* Aktiv-Zustand für eingerastete Tasten */
         .toggle-aktiv {
             background-color: #fff !important;
             color: #000 !important;
@@ -148,9 +144,9 @@
              onmouseup="sende('BREMSE_AUS')" ontouchend="sende('BREMSE_AUS')">🛑 BREMSEN</div>
         
         <div class="steuer-grid">
-            <div class="btn-control btn-blinker" onmousedown="sende('BLINKER_L')" ontouchstart="sende('BLINKER_L')" onmouseup="sende('STOP_BLINKER')" ontouchend="sende('STOP_BLINKER')">⬅️ Blink</div>
+            <div class="btn-control btn-blinker" id="blinkerLBtn" onclick="klickeBlinker('L')">⬅️ Blink</div>
             <div class="btn-control btn-vor" onmousedown="sende('VORWÄRTS')" ontouchstart="sende('VORWÄRTS')" onmouseup="sende('STOP_FAHREN')" ontouchend="sende('STOP_FAHREN')">⬆️</div>
-            <div class="btn-control btn-blinker" onmousedown="sende('BLINKER_R')" ontouchstart="sende('BLINKER_R')" onmouseup="sende('STOP_BLINKER')" ontouchend="sende('STOP_BLINKER')">Blink ➡️</div>
+            <div class="btn-control btn-blinker" id="blinkerRBtn" onclick="klickeBlinker('R')">Blink ➡️</div>
             
             <div class="btn-control" onmousedown="sende('LINKS')" ontouchstart="sende('LINKS')" onmouseup="sende('STOP_FAHREN')" ontouchend="sende('STOP_FAHREN')">⬅️</div>
             <div class="btn-control btn-autonom" id="autonomBtn" onclick="klickeAutonom()">🤖 Auto</div>
@@ -175,7 +171,6 @@
         let meineRolle = ''; let peer = null; let verbindung = null;
         const RAUM_ID = "roboter_super_funk_raum_9988";
 
-        // Sound-Variablen für das iPad
         let audioCtx = null;
         let sirenenInterval = null, oscillatorSirene = null, alarmLäuft = false;
         let oscillatorHupe = null, hupeLäuft = false;
@@ -183,8 +178,9 @@
         let autonomInterval = null, autonomModus = false;
         let bremseLäuft = false;
 
-        // Controller-Zustände für Schalter
+        // Controller Umschalt-Zustände
         let ctrlAutonom = false; let ctrlSirene = false;
+        let ctrlBlinkerL = false; let ctrlBlinkerR = false;
 
         const rText = document.getElementById('richtungs-text');
         document.getElementById('status').innerText = "Bereit.";
@@ -225,12 +221,33 @@
             }
         }
 
-        // Controller Umschalt-Funktionen
+        // Controller Einrast-Funktionen für Blinker
+        function klickeBlinker(richtung) {
+            if (richtung === 'L') {
+                ctrlBlinkerR = false;
+                document.getElementById('blinkerRBtn').classList.remove('toggle-aktiv');
+                
+                ctrlBlinkerL = !ctrlBlinkerL;
+                document.getElementById('blinkerLBtn').classList.toggle('toggle-aktiv', ctrlBlinkerL);
+                
+                if (ctrlBlinkerL) sende('BLINKER_L'); else sende('STOP_BLINKER');
+            } else {
+                ctrlBlinkerL = false;
+                document.getElementById('blinkerLBtn').classList.remove('toggle-aktiv');
+                
+                ctrlBlinkerR = !ctrlBlinkerR;
+                document.getElementById('blinkerRBtn').classList.toggle('toggle-aktiv', ctrlBlinkerR);
+                
+                if (ctrlBlinkerR) sende('BLINKER_R'); else sende('STOP_BLINKER');
+            }
+        }
+
         function klickeAutonom() {
             ctrlAutonom = !ctrlAutonom;
             document.getElementById('autonomBtn').classList.toggle('toggle-aktiv', ctrlAutonom);
             sende('AUTONOM');
         }
+        
         function klickeSirene() {
             ctrlSirene = !ctrlSirene;
             document.getElementById('sireneBtn').classList.toggle('toggle-aktiv', ctrlSirene);
@@ -256,17 +273,26 @@
                 if (befehl === 'HUPE_AN' && !hupeLäuft) starteHupe();
                 if (befehl === 'HUPE_AUS') stoppeHupe();
                 
-                if (befehl === 'BLINKER_L') { blinkerLinks = true; document.body.classList.add('blinker-links-aktiv'); rText.innerText = "⬅️ BLINKER L"; starteBlinkerSound(); }
-                if (befehl === 'BLINKER_R') { blinkerRechts = true; document.body.classList.add('blinker-rechts-aktiv'); rText.innerText = "BLINKER R ➡️"; starteBlinkerSound(); }
+                if (befehl === 'BLINKER_L') { 
+                    blinkerRechts = false; document.body.classList.remove('blinker-rechts-aktiv');
+                    blinkerLinks = true; document.body.classList.add('blinker-links-aktiv'); 
+                    rText.innerText = "⬅️ BLINKER L"; starteBlinkerSound(); 
+                }
+                if (befehl === 'BLINKER_R') { 
+                    blinkerLinks = false; document.body.classList.remove('blinker-links-aktiv');
+                    blinkerRechts = true; document.body.classList.add('blinker-rechts-aktiv'); 
+                    rText.innerText = "BLINKER R ➡️"; starteBlinkerSound(); 
+                }
                 if (befehl === 'STOP_BLINKER') allesAusschalten();
                 
                 if (befehl === 'SIRENE') { if (!alarmLäuft) starteAlarm(); else stoppeAlarm(); }
             });
         }
 
-        function zeigeRichtung(text, farbe) { if (!alarmLäuft) { rText.innerText = text; document.body.style.backgroundColor = farbe; } }
+        function zeigeRichtung(text, farbe) { if (!alarmLäuft && !blinkerLinks && !blinkerRechts) { rText.innerText = text; document.body.style.backgroundColor = farbe; } }
         
         function allesAusschalten() {
+            blinkerLinks = false; blinkerRechts = false;
             document.body.style.backgroundColor = '#111'; rText.innerText = "•";
             document.body.classList.remove('blinker-links-aktiv', 'blinker-rechts-aktiv');
             clearInterval(blinkerInterval);
