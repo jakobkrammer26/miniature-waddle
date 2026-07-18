@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WLAN Fernsteuerung & Notfall-Sirene</title>
+    <title>WLAN Fernsteuerung mit Code-Kopplung</title>
     <style>
         body {
             margin: 0;
@@ -19,7 +19,6 @@
             overflow: hidden;
         }
 
-        /* Animation für das rot-blaue Blinken auf dem Anzeige-iPad */
         @keyframes sireneBlinken {
             0%, 49% { background-color: #ff0000; }
             50%, 100% { background-color: #0000ff; }
@@ -45,7 +44,31 @@
             font-weight: bold;
         }
 
-        /* Controller Layout (Android Phone) */
+        /* Code-Eingabe Setup */
+        #code-setup {
+            display: none;
+            text-align: center;
+        }
+
+        #code-input {
+            font-size: 2rem;
+            padding: 10px;
+            width: 150px;
+            text-align: center;
+            border-radius: 8px;
+            border: none;
+            margin-bottom: 10px;
+        }
+
+        #generierter-code {
+            font-size: 4rem;
+            font-weight: bold;
+            color: #ffc107;
+            letter-spacing: 5px;
+            margin: 20px 0;
+        }
+
+        /* Controller Layout (Android) */
         #controller {
             display: none;
             flex-direction: column;
@@ -71,7 +94,6 @@
         }
         .ctrl-btn:active { background-color: #666; }
 
-        /* Großer Alarm-Knopf für das Android-Handy */
         .alarm-btn {
             background-color: #dc3545;
             color: white;
@@ -80,15 +102,11 @@
             border-radius: 12px;
             font-weight: bold;
             cursor: pointer;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
         }
         .alarm-btn:active { background-color: #bd2130; }
+        .stop-btn { background-color: #6c757d; }
 
-        .stop-btn {
-            background-color: #6c757d;
-        }
-
-        /* Anzeige Layout (iPad vor dir) */
+        /* Anzeige Layout (iPad) */
         #anzeige {
             display: none;
             text-align: center;
@@ -102,7 +120,6 @@
             margin-bottom: 40px;
         }
 
-        /* Der neue Notfall-Knopf direkt auf dem iPad */
         .ipad-notfall-btn {
             background-color: #ff0000;
             color: white;
@@ -112,8 +129,6 @@
             border-radius: 20px;
             font-weight: bold;
             cursor: pointer;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.7);
-            display: inline-block;
             animation: pulsieren 1.5s infinite;
         }
 
@@ -136,8 +151,21 @@
 
     <div id="auswahl" class="auswahl-box">
         <h2>Wähle die Rolle für dieses Gerät:</h2>
-        <button onclick="starteAls('controller')">Als Controller verbinden</button>
-        <button onclick="starteAls('anzeige')">Als Anzeige verbinden</button>
+        <button onclick="waehleRolle('controller')">Als Controller verbinden</button>
+        <button onclick="waehleRolle('anzeige')">Als Anzeige verbinden</button>
+    </div>
+
+    <div id="code-setup">
+        <div id="controller-code-bereich" style="display:none;">
+            <h3>Gib den Code vom iPad ein:</h3>
+            <input type="number" id="code-input" placeholder="0000"><br>
+            <button onclick="verbindeControllerMitCode()">Koppeln</button>
+        </div>
+        <div id="anzeige-code-bereich" style="display:none;">
+            <h3>Dein Verbindungscode:</h3>
+            <div id="generierter-code">----</div>
+            <p>Gib diesen Code auf deinem Android-Handy ein.</p>
+        </div>
     </div>
 
     <div id="controller">
@@ -163,63 +191,94 @@
     </div>
 
     <script>
-        const socket = new WebSocket('wss://demo.piehost.com/v3/sirenen_test_12345?api_key=VCXCEuvhGcBDP7XhiJZ2D9wJecP96NfA4wTy0iCO');
+        let socket = null;
         let meineRolle = '';
+        let verbindungscode = '';
         
         let audioCtx = null;
         let sirenenInterval = null;
         let oscillator = null;
         let alarmLäuft = false;
 
-        socket.onopen = () => { document.getElementById('status').innerText = "Bereit. Bitte Rolle wählen."; };
-        socket.onerror = () => { document.getElementById('status').innerText = "Verbindungsfehler!"; };
+        document.getElementById('status').innerText = "Bereit. Bitte Rolle wählen.";
 
-        function starteAls(rolle) {
+        function waehleRolle(rolle) {
             meineRolle = rolle;
             document.getElementById('auswahl').style.display = 'none';
-            
+            document.getElementById('code-setup').style.display = 'block';
+
             if (rolle === 'controller') {
-                document.getElementById('controller').style.display = 'flex';
-                document.getElementById('status').innerText = "Modus: Controller";
+                document.getElementById('controller-code-bereich').style.display = 'block';
+                document.getElementById('status').innerText = "Warte auf Code-Eingabe...";
             } else {
-                document.getElementById('anzeige').style.display = 'block';
-                document.getElementById('status').innerText = "Modus: Anzeige (Werte bereit)";
+                // Code für das iPad generieren (Zufallszahl zwischen 1000 und 9999)
+                verbindungscode = Math.floor(1000 + Math.random() * 9000).toString();
+                document.getElementById('generierter-code').innerText = verbindungscode;
+                document.getElementById('anzeige-code-bereich').style.display = 'block';
+                document.getElementById('status').innerText = "Warte auf Kopplung...";
                 
-                // Audio aktivieren und Notknopf-Logik für das iPad
-                const anzeigeBock = document.getElementById('anzeige');
-                const richtungsText = document.getElementById('richtungs-text');
-                const nKopf = document.getElementById('notknopf');
-
-                // Erster Klick schaltet das Audio im Browser frei
-                anzeigeBock.addEventListener('click', async (e) => {
-                    if (!audioCtx) {
-                        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                        richtungsText.innerText = "•";
-                    }
-                    if (audioCtx.state === 'suspended') {
-                        await audioCtx.resume();
-                    }
-
-                    // Wenn speziell auf den roten Notknopf gedrückt wurde:
-                    if (e.target === nKopf) {
-                        if (!alarmLäuft) {
-                            loeseAlarmAus();
-                        } else {
-                            stoppeAlarm();
-                        }
-                    }
-                });
+                // WebSocket direkt mit dem generierten Code starten
+                baueWebSocketVerbindung(verbindungscode);
             }
         }
 
-        // Controller sendet Befehl
+        function verbindeControllerMitCode() {
+            const eingegebenerCode = document.getElementById('code-input').value;
+            if (eingegebenerCode.length !== 4) {
+                alert("Bitte einen 4-stelligen Code eingeben!");
+                return;
+            }
+            baueWebSocketVerbindung(eingegebenerCode);
+        }
+
+        function baueWebSocketVerbindung(code) {
+            document.getElementById('status').innerText = "Verbinde mit Raum " + code + "...";
+            
+            // Der Code wird direkt an die Server-URL angehängt, damit sich nur Geräte mit demselben Code hören
+            socket = new WebSocket('wss://demo.piehost.com/v3/sirene_room_' + code + '?api_key=VCXCEuvhGcBDP7XhiJZ2D9wJecP96NfA4wTy0iCO');
+
+            socket.onopen = () => {
+                document.getElementById('code-setup').style.display = 'none';
+                
+                if (meineRolle === 'controller') {
+                    document.getElementById('controller').style.display = 'flex';
+                    document.getElementById('status').innerText = "Gekoppelt! Modus: Controller";
+                } else {
+                    document.getElementById('anzeige').style.display = 'block';
+                    document.getElementById('status').innerText = "Gekoppelt! Modus: Anzeige";
+                    setupIpadAudio();
+                }
+            };
+
+            socket.onerror = () => { document.getElementById('status').innerText = "Verbindungsfehler!"; };
+            socket.onmessage = (event) => { verarbeiteBefehl(event.data); };
+        }
+
+        // Steuerung für das iPad
+        function setupIpadAudio() {
+            const anzeigeBock = document.getElementById('anzeige');
+            const richtungsText = document.getElementById('richtungs-text');
+            const nKopf = document.getElementById('notknopf');
+
+            anzeigeBock.addEventListener('click', async (e) => {
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    richtungsText.innerText = "•";
+                }
+                if (audioCtx.state === 'suspended') { await audioCtx.resume(); }
+
+                if (e.target === nKopf) {
+                    if (!alarmLäuft) { loeseAlarmAus(); } else { stoppeAlarm(); }
+                }
+            });
+        }
+
         function sende(befehl) {
-            if (meineRolle === 'controller' && socket.readyState === WebSocket.OPEN) {
+            if (meineRolle === 'controller' && socket && socket.readyState === WebSocket.OPEN) {
                 socket.send(befehl);
             }
         }
 
-        // Funktionen um den Alarm direkt auf dem iPad umzuschalten
         function loeseAlarmAus() {
             alarmLäuft = true;
             document.body.classList.add('alarm-aktiv');
@@ -239,11 +298,8 @@
             stoppeSirenenTon();
         }
 
-        // Empfange Befehle (vom Handy an das iPad)
-        socket.onmessage = (event) => {
+        function verarbeiteBefehl(befehl) {
             if (meineRolle !== 'anzeige') return;
-            
-            const befehl = event.data;
             const rText = document.getElementById('richtungs-text');
 
             if (befehl === 'ALARM_AN') {
@@ -267,19 +323,15 @@
                     }
                 }, 1000);
             }
-        };
+        }
 
-        // Sound-Generator
         function starteSirenenTon() {
             if (!audioCtx) return;
-            
             oscillator = audioCtx.createOscillator();
             const gainNode = audioCtx.createGain();
-            
             oscillator.type = 'sawtooth'; 
             oscillator.frequency.setValueAtTime(650, audioCtx.currentTime);
             gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime); 
-
             oscillator.connect(gainNode);
             gainNode.connect(audioCtx.destination);
             oscillator.start();
@@ -294,9 +346,7 @@
 
         function stoppeSirenenTon() {
             clearInterval(sirenenInterval);
-            if (oscillator) {
-                try { oscillator.stop(); } catch(e) {}
-            }
+            if (oscillator) { try { oscillator.stop(); } catch(e) {} }
         }
     </script>
 </body>
