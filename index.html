@@ -2,14 +2,14 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Roboter Fernsteuerung über Funk</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-select=none">
+    <title>Einfache Roboter Fernsteuerung</title>
     <style>
         body {
             margin: 0;
             height: 100vh;
-            font-family: Arial, sans-serif;
-            background-color: #222;
+            font-family: 'Arial Black', Gadget, sans-serif;
+            background-color: #111;
             color: white;
             display: flex;
             flex-direction: column;
@@ -17,7 +17,7 @@
             align-items: center;
             user-select: none;
             overflow: hidden;
-            transition: background-color 0.1s;
+            -webkit-touch-callout: none;
         }
 
         /* 🚨 Alarm: Rot-Blaues Blinken */
@@ -25,103 +25,157 @@
             0%, 49% { background-color: #ff0000; }
             50%, 100% { background-color: #0000ff; }
         }
-        .alarm-aktiv { animation: sireneBlinken 0.6s infinite steps(1) !important; }
+        .alarm-aktiv { animation: sireneBlinken 0.4s infinite steps(1) !important; }
 
         /* ⬅️ Blinker Links */
         @keyframes blinkenLinks {
-            0%, 49% { background: linear-gradient(90deg, #ffcc00 50%, #222 50%); }
-            50%, 100% { background: #222; }
+            0%, 49% { background: linear-gradient(90deg, #ffcc00 50%, #111 50%); }
+            50%, 100% { background: #111; }
         }
-        .blinker-links-aktiv { animation: blinkenLinks 0.8s infinite steps(1); }
+        .blinker-links-aktiv { animation: blinkenLinks 0.6s infinite steps(1); }
 
         /* ➡️ Blinker Rechts */
         @keyframes blinkenRechts {
-            0%, 49% { background: linear-gradient(90deg, #222 50%, #ffcc00 50%); }
-            50%, 100% { background: #222; }
+            0%, 49% { background: linear-gradient(90deg, #111 50%, #ffcc00 50%); }
+            50%, 100% { background: #111; }
         }
-        .blinker-rechts-aktiv { animation: blinkenRechts 0.8s infinite steps(1); }
+        .blinker-rechts-aktiv { animation: blinkenRechts 0.6s infinite steps(1); }
 
         .auswahl-box { text-align: center; }
-        
-        button {
-            padding: 15px 25px; font-size: 1.2rem; margin: 8px; cursor: pointer;
-            border: none; border-radius: 8px; background-color: #007bff; color: white; font-weight: bold;
+        .auswahl-box button {
+            padding: 20px 40px; font-size: 1.5rem; margin: 15px; cursor: pointer;
+            border: none; border-radius: 12px; background-color: #007bff; color: white; font-weight: bold;
         }
 
         #anzeige-bereich { display: none; text-align: center; width: 100%; z-index: 10; }
-        #controller-bereich { display: none; flex-direction: column; align-items: center; gap: 15px; }
+        #richtungs-text { font-size: 6rem; font-weight: bold; text-shadow: 3px 3px 15px rgba(0,0,0,0.9); }
         
-        .steuerkreuz {
-            display: grid;
-            grid-template-columns: repeat(3, 85px);
-            grid-template-rows: repeat(3, 85px);
-            gap: 10px;
-        }
-        .touch-btn {
-            background-color: #444; display: flex; justify-content: center; align-items: center;
-            font-size: 1.8rem; border-radius: 12px; font-weight: bold; cursor: pointer;
-        }
-        .touch-btn:active { background-color: #666; }
-        
-        .brems-btn { background-color: #dc3545; grid-column: span 3; height: 60px; font-size: 1.3rem; }
-        .brems-btn:active { background-color: #bd2130; }
-        
-        .funk-btn { background-color: #17a2b8; font-size: 1.1rem; }
-        .alarm-touch-btn { background-color: #ffc107; color: black; font-size: 1.1rem; }
+        #status { position: absolute; top: 15px; color: #666; font-size: 0.9rem; font-family: Arial, sans-serif; }
 
-        #richtungs-text { font-size: 5rem; font-weight: bold; text-shadow: 2px 2px 10px rgba(0,0,0,0.8); margin-bottom: 20px; }
-        #status { position: absolute; top: 20px; color: #888; font-weight: bold; }
+        /* --- CONTROLLER DESIGN (HANDY) --- */
+        #controller-bereich {
+            display: none;
+            flex-direction: column;
+            justify-content: space-between;
+            width: 90%;
+            max-width: 400px;
+            height: 85vh;
+            gap: 15px;
+        }
+
+        /* Riesiger Bremsknopf */
+        .haupt-bremse {
+            background-color: #ff1111;
+            color: white;
+            font-size: 2rem;
+            font-weight: bold;
+            text-align: center;
+            padding: 25px;
+            border-radius: 20px;
+            box-shadow: 0 8px #990000;
+            cursor: pointer;
+        }
+        .haupt-bremse:active {
+            box-shadow: 0 2px #990000;
+            transform: translateY(6px);
+            background-color: #cc0000;
+        }
+
+        /* Das intuitive Steuerkreuz */
+        .steuer-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+        }
+
+        .btn-control {
+            background-color: #333;
+            color: white;
+            font-size: 2.5rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 95px;
+            border-radius: 20px;
+            box-shadow: 0 6px #222;
+            cursor: pointer;
+        }
+        .btn-control:active {
+            box-shadow: 0 2px #222;
+            transform: translateY(4px);
+            background-color: #444;
+        }
+
+        /* Spezialfarben für die Tasten */
+        .btn-vor { background-color: #28a745; box-shadow: 0 6px #1e7e34; }
+        .btn-vor:active { background-color: #1e7e34; }
+        
+        .btn-zurueck { background-color: #ffc107; color: black; box-shadow: 0 6px #d39e00; }
+        .btn-zurueck:active { background-color: #d39e00; }
+
+        .btn-blinker { background-color: #ff8800; font-size: 1.2rem; box-shadow: 0 6px #cc6600; }
+        .btn-blinker:active { background-color: #cc6600; }
+
+        .btn-hupe { background-color: #007bff; grid-column: span 3; height: 75px; font-size: 1.6rem; box-shadow: 0 6px #0056b3; }
+        .btn-hupe:active { background-color: #0056b3; }
+
+        .btn-autonom { background-color: #6f42c1; font-size: 1.2rem; box-shadow: 0 6px #5a32a3; }
+        .btn-sirene { background-color: #dc3545; font-size: 1.2rem; box-shadow: 0 6px #bd2130; }
+
+        /* Aktiv-Zustand für Umschalter */
+        .toggle-aktiv {
+            background-color: #fff !important;
+            color: #000 !important;
+            box-shadow: 0 2px #aaa !important;
+            transform: translateY(4px);
+        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.4.7/peerjs.min.js"></script>
 </head>
 <body>
 
-    <div id="status">Lade Funksystem...</div>
+    <div id="status">Lade...</div>
 
     <div id="auswahl" class="auswahl-box">
-        <h2>Wähle die Rolle für dieses Gerät:</h2>
-        <button onclick="starteAls('controller')">Als Controller (Android Touch Screen)</button>
-        <button onclick="starteAls('anzeige')">Als Anzeige (iPad am Roboter)</button>
+        <h2>Wer bist du?</h2>
+        <button onclick="starteAls('controller')">📱 Das Lenkrad (Handy)</button><br>
+        <button onclick="starteAls('anzeige')">📺 Der Roboter (iPad)</button>
     </div>
 
     <div id="controller-bereich">
-        <div class="touch-btn brems-btn" 
+        <div class="haupt-bremse" 
              onmousedown="sende('BREMSE_AN')" ontouchstart="sende('BREMSE_AN')"
-             onmouseup="sende('BREMSE_AUS')" ontouchend="sende('BREMSE_AUS')">🛑 BREMSE HIER</div>
+             onmouseup="sende('BREMSE_AUS')" ontouchend="sende('BREMSE_AUS')">🛑 BREMSEN</div>
         
-        <div class="steuerkreuz">
-            <div class="touch-btn funk-btn" onmousedown="sende('BLINKER_L')" ontouchstart="sende('BLINKER_L')">⬅️ BL</div>
-            <div class="touch-btn" onmousedown="sende('VORWÄRTS')" ontouchstart="sende('VORWÄRTS')" onmouseup="sende('STOP_FAHREN')" ontouchend="sende('STOP_FAHREN')">⬆️</div>
-            <div class="touch-btn funk-btn" onmousedown="sende('BLINKER_R')" ontouchstart="sende('BLINKER_R')">BR ➡️</div>
+        <div class="steuer-grid">
+            <div class="btn-control btn-blinker" onmousedown="sende('BLINKER_L')" ontouchstart="sende('BLINKER_L')" onmouseup="sende('STOP_BLINKER')" ontouchend="sende('STOP_BLINKER')">⬅️ Blink</div>
+            <div class="btn-control btn-vor" onmousedown="sende('VORWÄRTS')" ontouchstart="sende('VORWÄRTS')" onmouseup="sende('STOP_FAHREN')" ontouchend="sende('STOP_FAHREN')">⬆️</div>
+            <div class="btn-control btn-blinker" onmousedown="sende('BLINKER_R')" ontouchstart="sende('BLINKER_R')" onmouseup="sende('STOP_BLINKER')" ontouchend="sende('STOP_BLINKER')">Blink ➡️</div>
             
-            <div class="touch-btn" onmousedown="sende('LINKS')" ontouchstart="sende('LINKS')" onmouseup="sende('STOP_FAHREN')" ontouchend="sende('STOP_FAHREN')">⬅️</div>
-            <div class="touch-btn" style="background:none; font-size:1rem; cursor:default;">Robo</div>
-            <div class="touch-btn" onmousedown="sende('RECHTS')" ontouchstart="sende('RECHTS')" onmouseup="sende('STOP_FAHREN')" ontouchend="sende('STOP_FAHREN')">➡️</div>
+            <div class="btn-control" onmousedown="sende('LINKS')" ontouchstart="sende('LINKS')" onmouseup="sende('STOP_FAHREN')" ontouchend="sende('STOP_FAHREN')">⬅️</div>
+            <div class="btn-control btn-autonom" id="autonomBtn" onclick="klickeAutonom()">🤖 Auto</div>
+            <div class="btn-control" onmousedown="sende('RECHTS')" ontouchstart="sende('RECHTS')" onmouseup="sende('STOP_FAHREN')" ontouchend="sende('STOP_FAHREN')">➡️</div>
             
-            <div class="touch-btn funk-btn" onmousedown="sende('AUTONOM')" ontouchstart="sende('AUTONOM')">🤖 AUT</div>
-            <div class="touch-btn" onmousedown="sende('RÜCKWÄRTS')" ontouchstart="sende('RÜCKWÄRTS')" onmouseup="sende('STOP_FAHREN')" ontouchend="sende('STOP_FAHREN')">⬇️</div>
-            <div class="touch-btn alarm-touch-btn" onmousedown="sende('SIRENE')" ontouchstart="sende('SIRENE')">🚨 WIO</div>
-        </div>
+            <div class="btn-control btn-sirene" id="sireneBtn" onclick="klickeSirene()">🚨 Sirene</div>
+            <div class="btn-control btn-zurueck" onmousedown="sende('RÜCKWÄRTS')" ontouchstart="sende('RÜCKWÄRTS')" onmouseup="sende('STOP_FAHREN')" ontouchend="sende('STOP_FAHREN')">⬇️</div>
+            <div class="btn-control" style="background:none; box-shadow:none; cursor:default;"></div>
 
-        <div class="touch-btn" style="background-color: #28a745; width: 275px; height: 55px; font-size: 1.3rem;"
-             onmousedown="sende('HUPE_AN')" ontouchstart="sende('HUPE_AN')"
-             onmouseup="sende('HUPE_AUS')" ontouchend="sende('HUPE_AUS')">📯 HUPE DRÜCKEN</div>
+            <div class="btn-control btn-hupe" 
+                 onmousedown="sende('HUPE_AN')" ontouchstart="sende('HUPE_AN')"
+                 onmouseup="sende('HUPE_AUS')" ontouchend="sende('HUPE_AUS')">📯 HUPE DRÜCKEN</div>
+        </div>
     </div>
 
     <div id="anzeige-bereich">
         <div id="richtungs-text">STARTBEREIT</div>
-        <p style="color:#ffc107; font-weight:bold; font-size: 1.5rem;">👉 EINMAL HIER DRAUF TIPPEN FÜR SOUND! 👈</p>
+        <p style="color:#ffc107; font-weight:bold; font-size: 1.5rem;">👉 EINMAL HIER DRAUF TIPPEN! 👈</p>
     </div>
 
     <script>
-        let meineRolle = '';
-        let peer = null;
-        let verbindung = null;
-        
-        // Eindeutige ID, damit sich deine beiden Geräte immer sofort finden
+        let meineRolle = ''; let peer = null; let verbindung = null;
         const RAUM_ID = "roboter_super_funk_raum_9988";
 
-        // Sound-Variablen
+        // Sound-Variablen für das iPad
         let audioCtx = null;
         let sirenenInterval = null, oscillatorSirene = null, alarmLäuft = false;
         let oscillatorHupe = null, hupeLäuft = false;
@@ -129,63 +183,61 @@
         let autonomInterval = null, autonomModus = false;
         let bremseLäuft = false;
 
+        // Controller-Zustände für Schalter
+        let ctrlAutonom = false; let ctrlSirene = false;
+
         const rText = document.getElementById('richtungs-text');
-        document.getElementById('status').innerText = "System bereit. Rolle wählen.";
+        document.getElementById('status').innerText = "Bereit.";
 
         function starteAls(rolle) {
             meineRolle = rolle;
             document.getElementById('auswahl').style.display = 'none';
-            document.getElementById('status').innerText = "Verbinde mit dem Funknetz...";
+            document.getElementById('status').innerText = "Verbindung wird aufgebaut...";
 
             if (rolle === 'anzeige') {
-                // Das iPad öffnet den Raum und wartet
                 peer = new Peer(RAUM_ID);
                 document.getElementById('anzeige-bereich').style.display = 'block';
-                
-                peer.on('open', () => {
-                    document.getElementById('status').innerText = "📡 Signal aktiv! Warte auf Handy...";
-                });
-
+                peer.on('open', () => { document.getElementById('status').innerText = "Warte auf Handy..."; });
                 peer.on('connection', (conn) => {
                     verbindung = conn;
-                    document.getElementById('status').innerText = "🟢 Gekoppelt mit Handy!";
+                    document.getElementById('status').innerText = "🟢 Gekoppelt!";
                     setupEmpfaengerDaten();
                 });
-
-                setupAudioKlick();
+                document.getElementById('anzeige-bereich').addEventListener('click', async () => {
+                    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    if (audioCtx.state === 'suspended') await audioCtx.resume();
+                    rText.innerText = "•";
+                });
             } else {
-                // Das Android-Handy verbindet sich aktiv mit der iPad-ID
                 peer = new Peer();
                 document.getElementById('controller-bereich').style.display = 'flex';
-                
                 peer.on('open', () => {
                     document.getElementById('status').innerText = "Suche iPad...";
                     verbindung = peer.connect(RAUM_ID);
-                    
-                    verbindung.on('open', () => {
-                        document.getElementById('status').innerText = "🟢 Erfolgreich mit iPad gekoppelt!";
-                    });
+                    verbindung.on('open', () => { document.getElementById('status').innerText = "🟢 Gekoppelt!"; });
                 });
             }
         }
 
-        // Befehl senden (Vom Handy ans iPad)
         function sende(befehl) {
             if (meineRolle === 'controller' && verbindung && verbindung.open) {
                 verbindung.send(befehl);
             }
         }
 
-        // Audio aktivieren (Auf dem iPad)
-        function setupAudioKlick() {
-            document.getElementById('anzeige-bereich').addEventListener('click', async () => {
-                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                if (audioCtx.state === 'suspended') await audioCtx.resume();
-                rText.innerText = "•";
-            });
+        // Controller Umschalt-Funktionen
+        function klickeAutonom() {
+            ctrlAutonom = !ctrlAutonom;
+            document.getElementById('autonomBtn').classList.toggle('toggle-aktiv', ctrlAutonom);
+            sende('AUTONOM');
+        }
+        function klickeSirene() {
+            ctrlSirene = !ctrlSirene;
+            document.getElementById('sireneBtn').classList.toggle('toggle-aktiv', ctrlSirene);
+            sende('SIRENE');
         }
 
-        // Befehle auf dem iPad empfangen und ausführen
+        // --- IPAD EMPFÄNGER CODE ---
         function setupEmpfaengerDaten() {
             verbindung.on('data', (befehl) => {
                 if (befehl === 'BREMSE_AN') { starteBremse(); return; }
@@ -198,76 +250,53 @@
                 if (befehl === 'LINKS') zeigeRichtung('LINKS', '#4B0082');
                 if (befehl === 'RECHTS') zeigeRichtung('RECHTS', '#4A3B00');
                 
-                if (befehl === 'STOP_FAHREN' && !alarmLäuft && !blinkerLinks && !blinkerRechts && !autonomModus) {
-                    allesAusschalten();
-                }
+                if (befehl === 'STOP_FAHREN' && !alarmLäuft && !blinkerLinks && !blinkerRechts && !autonomModus) allesAusschalten();
 
                 if (befehl === 'AUTONOM') { if (!autonomModus) starteAutonom(); else stoppeAutonom(); }
                 if (befehl === 'HUPE_AN' && !hupeLäuft) starteHupe();
                 if (befehl === 'HUPE_AUS') stoppeHupe();
-                if (befehl === 'BLINKER_L') schalteBlinker('links');
-                if (befehl === 'BLINKER_R') schalteBlinker('rechts');
                 
-                if (befehl === 'SIRENE') {
-                    stoppeBlinkerSound(); blinkerLinks = false; blinkerRechts = false;
-                    document.body.classList.remove('blinker-links-aktiv', 'blinker-rechts-aktiv');
-                    if (!alarmLäuft) starteAlarm(); else stoppeAlarm();
-                }
+                if (befehl === 'BLINKER_L') { blinkerLinks = true; document.body.classList.add('blinker-links-aktiv'); rText.innerText = "⬅️ BLINKER L"; starteBlinkerSound(); }
+                if (befehl === 'BLINKER_R') { blinkerRechts = true; document.body.classList.add('blinker-rechts-aktiv'); rText.innerText = "BLINKER R ➡️"; starteBlinkerSound(); }
+                if (befehl === 'STOP_BLINKER') allesAusschalten();
+                
+                if (befehl === 'SIRENE') { if (!alarmLäuft) starteAlarm(); else stoppeAlarm(); }
             });
         }
 
-        // --- AKTIONEN (Licht & Sound) ---
-        function zeigeRichtung(text, farbe) {
-            if (!alarmLäuft) { rText.innerText = text; document.body.style.backgroundColor = farbe; }
-        }
-
+        function zeigeRichtung(text, farbe) { if (!alarmLäuft) { rText.innerText = text; document.body.style.backgroundColor = farbe; } }
+        
         function allesAusschalten() {
-            document.body.style.backgroundColor = '#222'; rText.innerText = "•";
-            document.body.classList.remove('blinker-links-aktiv', 'blinker-rechts-aktiv', 'alarm-aktiv');
-            stoppeBlinkerSound();
+            document.body.style.backgroundColor = '#111'; rText.innerText = "•";
+            document.body.classList.remove('blinker-links-aktiv', 'blinker-rechts-aktiv');
+            clearInterval(blinkerInterval);
         }
 
         function starteBremse() {
-            bremseLäuft = true; if (autonomModus) stoppeAutonom(); stoppeAlarm(); allesAusschalten();
+            bremseLäuft = true; if (autonomModus) autonomModus = false; stoppeAlarm(); allesAusschalten();
             rText.innerText = "🛑 BREMSE!"; document.body.style.backgroundColor = "#ff1111";
             if (!audioCtx) return;
             const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
-            osc.type = 'sawtooth'; osc.frequency.setValueAtTime(300, audioCtx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(80, audioCtx.currentTime + 0.4);
+            osc.type = 'sawtooth'; osc.frequency.setValueAtTime(300, audioCtx.currentTime); osc.frequency.exponentialRampToValueAtTime(80, audioCtx.currentTime + 0.4);
             gain.gain.setValueAtTime(0.3, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
             osc.connect(gain); gain.connect(audioCtx.destination); osc.start(); osc.stop(audioCtx.currentTime + 0.4);
         }
         function stoppeBremse() { bremseLäuft = false; allesAusschalten(); }
 
         function starteAutonom() {
-            autonomModus = true; stoppeAlarm(); allesAusschalten(); rText.innerText = "🤖 AUTONOM AN";
+            autonomModus = true; stoppeAlarm(); allesAusschalten(); rText.innerText = "🤖 AUTONOM";
             autonomInterval = setInterval(() => {
-                const aktionen = ['VORWÄRTS', 'LINKS', 'RECHTS', 'HUPE'];
-                const zufall = aktionen[Math.floor(Math.random() * aktionen.length)];
+                const aktionen = ['VORWÄRTS', 'LINKS', 'RECHTS', 'HUPE']; const zufall = aktionen[Math.floor(Math.random() * aktionen.length)];
                 allesAusschalten();
-                if (zufall === 'VORWÄRTS') zeigeRichtung('🤖 AUTONOM: VORWÄRTS', '#004d00');
-                if (zufall === 'LINKS') { zeigeRichtung('🤖 AUTONOM: LINKS', '#222'); schalteBlinker('links'); }
-                if (zufall === 'RECHTS') { zeigeRichtung('🤖 AUTONOM: RECHTS', '#222'); schalteBlinker('rechts'); }
+                if (zufall === 'VORWÄRTS') zeigeRichtung('🤖 AUTONOM: VOR', '#004d00');
+                if (zufall === 'LINKS') { zeigeRichtung('🤖 AUTONOM: LINKS', '#111'); blinkerLinks = true; document.body.classList.add('blinker-links-aktiv'); starteBlinkerSound(); }
+                if (zufall === 'RECHTS') { zeigeRichtung('🤖 AUTONOM: RECHTS', '#111'); blinkerRechts = true; document.body.classList.add('blinker-rechts-aktiv'); starteBlinkerSound(); }
                 if (zufall === 'HUPE') { starteHupe(); setTimeout(stoppeHupe, 300); }
-            }, 1500);
+            }, 1200);
         }
-        function stoppeAutonom() { autonomModus = false; clearInterval(autonomInterval); allesAusschalten(); rText.innerText = "🤖 AUTONOM AUS"; }
+        function stoppeAutonom() { autonomModus = false; clearInterval(autonomInterval); allesAusschalten(); }
 
-        function schalteBlinker(richtung) {
-            stoppeBlinkerSound();
-            if (richtung === 'links') {
-                blinkerRechts = false; document.body.classList.remove('blinker-rechts-aktiv');
-                blinkerLinks = !blinkerLinks;
-                if (blinkerLinks) { document.body.classList.add('blinker-links-aktiv'); rText.innerText = "⬅️ BLINKER L"; starteBlinkerSound(); }
-                else allesAusschalten();
-            } else {
-                blinkerLinks = false; document.body.classList.remove('blinker-links-aktiv');
-                blinkerRechts = !blinkerRechts;
-                if (blinkerRechts) { document.body.classList.add('blinker-rechts-aktiv'); rText.innerText = "BLINKER R ➡️"; starteBlinkerSound(); }
-                else allesAusschalten();
-            }
-        }
-        function starteBlinkerSound() { if (!audioCtx) return; spieleKlickTon(); blinkerInterval = setInterval(spieleKlickTon, 400); }
+        function starteBlinkerSound() { clearInterval(blinkerInterval); spieleKlickTon(); blinkerInterval = setInterval(spieleKlickTon, 400); }
         function spieleKlickTon() {
             if (!audioCtx) return;
             const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
@@ -275,31 +304,24 @@
             gain.gain.setValueAtTime(0.2, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.05);
             osc.connect(gain); gain.connect(audioCtx.destination); osc.start(); osc.stop(audioCtx.currentTime + 0.06);
         }
-        function stoppeBlinkerSound() { clearInterval(blinkerInterval); }
 
         function starteHupe() {
-            if (!audioCtx) return; hupeLäuft = true;
+            if (!audioCtx) return; hupeLäuft = true; if(!alarmLäuft) rText.innerText = "📯 HUUP!";
             oscillatorHupe = audioCtx.createOscillator(); const gainNode = audioCtx.createGain();
-            oscillatorHupe.type = 'triangle'; oscillatorHupe.frequency.setValueAtTime(220, audioCtx.currentTime); 
-            gainNode.gain.setValueAtTime(0.4, audioCtx.currentTime);
+            oscillatorHupe.type = 'triangle'; oscillatorHupe.frequency.setValueAtTime(220, audioCtx.currentTime); gainNode.gain.setValueAtTime(0.4, audioCtx.currentTime);
             oscillatorHupe.connect(gainNode); gainNode.connect(audioCtx.destination); oscillatorHupe.start();
         }
-        function stoppeHupe() { hupeLäuft = false; if (oscillatorHupe) { try { oscillatorHupe.stop(); } catch(e) {} } }
+        function stoppeHupe() { hupeLäuft = false; if(!alarmLäuft) rText.innerText = "•"; if (oscillatorHupe) { try { oscillatorHupe.stop(); } catch(e) {} } }
 
         function starteAlarm() {
             alarmLäuft = true; document.body.classList.add('alarm-aktiv'); rText.innerText = "🚨 ALARM 🚨";
             if (!audioCtx) return;
             oscillatorSirene = audioCtx.createOscillator(); const gainNode = audioCtx.createGain();
-            oscillatorSirene.type = 'sawtooth'; oscillatorSirene.frequency.setValueAtTime(650, audioCtx.currentTime);
-            gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
+            oscillatorSirene.type = 'sawtooth'; oscillatorSirene.frequency.setValueAtTime(650, audioCtx.currentTime); gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
             oscillatorSirene.connect(gainNode); gainNode.connect(audioCtx.destination); oscillatorSirene.start();
-            let hoch = true;
-            sirenenInterval = setInterval(() => {
-                const frequenz = hoch ? 850 : 550; oscillatorSirene.frequency.linearRampToValueAtTime(frequenz, audioCtx.currentTime + 0.1);
-                hoch = !hoch;
-            }, 300);
+            let hoch = true; sirenenInterval = setInterval(() => { const frequenz = hoch ? 850 : 550; oscillatorSirene.frequency.linearRampToValueAtTime(frequenz, audioCtx.currentTime + 0.1); hoch = !hoch; }, 300);
         }
-        function stoppeAlarm() { alarmLäuft = false; clearInterval(sirenenInterval); if (oscillatorSirene) { try { oscillatorSirene.stop(); } catch(e) {} } allesAusschalten(); }
+        function stoppeAlarm() { alarmLäuft = false; clearInterval(sirenenInterval); document.body.classList.remove('alarm-aktiv'); if (oscillatorSirene) { try { oscillatorSirene.stop(); } catch(e) {} } allesAusschalten(); }
     </script>
 </body>
 </html>
