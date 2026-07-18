@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-select=none">
-    <title>Kinderleichte Roboter-Steuerung</title>
+    <title>Roboter-Steuerung mit Einrast-Funktion</title>
     <style>
         body {
             margin: 0;
@@ -64,7 +64,7 @@
         .btn-ja { background-color: #28a745; color: white; }
         .btn-nein { background-color: #dc3545; color: white; }
 
-        /* --- KINDERLEICHTER CONTROLLER --- */
+        /* --- CONTROLLER BEREICH --- */
         #controller-bereich {
             display: none;
             flex-direction: column;
@@ -75,28 +75,20 @@
             gap: 10px;
         }
 
-        .top-bar {
-            display: flex; gap: 10px; height: 60px;
-        }
+        .top-bar { display: flex; gap: 10px; height: 60px; }
         .frage-sender-box {
             flex: 1; background-color: #222; padding: 5px 10px; border-radius: 15px;
             display: flex; gap: 10px; align-items: center;
         }
-        .frage-input {
-            flex: 1; padding: 10px; font-size: 1rem; border-radius: 10px; border: none;
-            background-color: #444; color: white;
-        }
+        .frage-input { flex: 1; padding: 10px; font-size: 1rem; border-radius: 10px; border: none; background-color: #444; color: white; }
         .btn-senden { background-color: #6f42c1; color: white; border: none; padding: 10px 15px; font-weight: bold; border-radius: 10px; }
-
         .info-bar { text-align: center; font-size: 1rem; color: #ffc107; font-family: Arial, sans-serif; height: 20px; }
 
-        /* Riesen-Bremse */
         .mega-bremse {
             background-color: #ff1111; color: white; font-size: 1.8rem; font-weight: bold;
             text-align: center; padding: 15px; border-radius: 15px; cursor: pointer;
         }
 
-        /* Haupt-Fahrbereich: Geteilter Bildschirm */
         .fahr-zone {
             flex: 1;
             display: grid;
@@ -104,11 +96,7 @@
             gap: 15px;
         }
 
-        .lenk-seite, .fahr-seite {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
+        .lenk-seite, .fahr-seite { display: flex; flex-direction: column; gap: 15px; }
 
         .riesen-btn {
             flex: 1;
@@ -121,24 +109,13 @@
             background-color: #333;
             box-shadow: inset 0 -8px rgba(0,0,0,0.3);
         }
-        .riesen-btn:active {
-            box-shadow: inset 0 4px rgba(0,0,0,0.3);
-            background-color: #444;
-        }
 
-        /* Farben für die Riesen-Zonen */
         .btn-links { background-color: #4B0082; }
         .btn-rechts { background-color: #4A3B00; }
         .btn-vorwaerts { background-color: #28a745; font-size: 4rem; }
         .btn-rueckwaerts { background-color: #ffc107; color: black; font-size: 4rem; }
 
-        /* Untere Funktionsleiste */
-        .unten-bar {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 10px;
-            height: 85px;
-        }
+        .unten-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; height: 85px; }
         .kleiner-btn {
             display: flex; flex-direction: column; justify-content: center; align-items: center;
             font-size: 1.5rem; background-color: #222; border-radius: 15px; cursor: pointer;
@@ -150,7 +127,10 @@
         .btn-t { background-color: #17a2b8; }
         .btn-s { background-color: #dc3545; }
 
-        .toggle-aktiv { background-color: #fff !important; color: #000 !important; }
+        .btn-hupe { background-color: #007bff; height: 75px; font-size: 1.5rem; box-shadow: inset 0 -8px rgba(0,0,0,0.3); }
+
+        /* Stil für alle Knöpfe, wenn sie eingerastet (aktiv) sind */
+        .toggle-aktiv { background-color: #fff !important; color: #000 !important; box-shadow: inset 0 6px rgba(0,0,0,0.4) !important; }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.4.7/peerjs.min.js"></script>
 </head>
@@ -173,18 +153,16 @@
         </div>
         <div class="info-bar" id="antwort-rueckmeldung"></div>
 
-        <div class="mega-bremse" 
-             onmousedown="sende('BREMSE_AN')" ontouchstart="sende('BREMSE_AN')"
-             onmouseup="sende('BREMSE_AUS')" ontouchend="sende('BREMSE_AUS')">🛑 STOP / BREMSE</div>
+        <div class="mega-bremse" onclick="klickeBremse()">🛑 ALLES STOPPEN / BREMSE</div>
         
         <div class="fahr-zone">
             <div class="lenk-seite">
-                <div class="riesen-btn btn-links" onmousedown="sende('LINKS')" ontouchstart="sende('LINKS')" onmouseup="sende('STOP_FAHREN')" ontouchend="sende('STOP_FAHREN')">⬅️</div>
-                <div class="riesen-btn btn-rechts" onmousedown="sende('RECHTS')" ontouchstart="sende('RECHTS')" onmouseup="sende('STOP_FAHREN')" ontouchend="sende('STOP_FAHREN')">➡️</div>
+                <div class="riesen-btn btn-links" id="linksBtn" onclick="klickeRichtung('LINKS')">⬅️</div>
+                <div class="riesen-btn btn-rechts" id="rechtsBtn" onclick="klickeRichtung('RECHTS')">➡️</div>
             </div>
             <div class="fahr-seite">
-                <div class="riesen-btn btn-vorwaerts" onmousedown="sende('VORWÄRTS')" ontouchstart="sende('VORWÄRTS')" onmouseup="sende('STOP_FAHREN')" ontouchend="sende('STOP_FAHREN')">⬆️</div>
-                <div class="riesen-btn btn-rueckwaerts" onmousedown="sende('RÜCKWÄRTS')" ontouchstart="sende('RÜCKWÄRTS')" onmouseup="sende('STOP_FAHREN')" ontouchend="sende('STOP_FAHREN')">⬇️</div>
+                <div class="riesen-btn btn-vorwaerts" id="vorBtn" onclick="klickeRichtung('VOR')">⬆️</div>
+                <div class="riesen-btn btn-rueckwaerts" id="zurueckBtn" onclick="klickeRichtung('ZURUECK')">⬇️</div>
             </div>
         </div>
 
@@ -195,9 +173,7 @@
             <div class="kleiner-btn btn-s" id="sireneBtn" onclick="klickeSirene()">🚨<span>Sirene</span></div>
         </div>
 
-        <div class="riesen-btn" style="background-color: #28a745; height: 70px; font-size: 1.5rem;"
-             onmousedown="sende('HUPE_AN')" ontouchstart="sende('HUPE_AN')"
-             onmouseup="sende('HUPE_AUS')" ontouchend="sende('HUPE_AUS')">📯 HUPE DRÜCKEN</div>
+        <div class="riesen-btn btn-hupe" id="hupeBtn" onclick="klickeHupe()">📯 HUPE AN / AUS</div>
     </div>
 
     <div id="anzeige-bereich">
@@ -224,8 +200,10 @@
         let oscillatorTreppe = null, treppenModus = false;
         let bremseLäuft = false;
 
-        let ctrlTreppe = false; let ctrlSirene = false;
-        let ctrlBlinkerL = false; let ctrlBlinkerR = false;
+        // Controller Einrast-Zustände
+        let ctrlVor = false; let ctrlZurueck = false; let ctrlLinks = false; let ctrlRechts = false;
+        let ctrlTreppe = false; let ctrlSirene = false; let ctrlBlinkerL = false; let ctrlBlinkerR = false;
+        let ctrlHupe = false;
 
         const rText = document.getElementById('richtungs-text');
         document.getElementById('status').innerText = "Bereit.";
@@ -265,31 +243,63 @@
         }
 
         function sende(befehl) {
-            if (meineRolle === 'controller' && verbindung && verbindung.open) {
-                verbindung.send(befehl);
+            if (meineRolle === 'controller' && verbindung && verbindung.open) { verbindung.send(befehl); }
+        }
+
+        // --- DIREKTES EINRASTEN FÜR ALLE BEWEGUNGEN ---
+        function klickeRichtung(richtung) {
+            if (richtung === 'VOR') {
+                ctrlZurueck = false; document.getElementById('zurueckBtn').classList.remove('toggle-aktiv');
+                ctrlVor = !ctrlVor; document.getElementById('vorBtn').classList.toggle('toggle-aktiv', ctrlVor);
+                if (ctrlVor) { ctrlLinks = false; ctrlRechts = false; resetLenkButtons(); sende('VORWÄRTS'); } else { sende('STOP_FAHREN'); }
+            } 
+            else if (richtung === 'ZURUECK') {
+                ctrlVor = false; document.getElementById('vorBtn').classList.remove('toggle-aktiv');
+                ctrlZurueck = !ctrlZurueck; document.getElementById('zurueckBtn').classList.toggle('toggle-aktiv', ctrlZurueck);
+                if (ctrlZurueck) { ctrlLinks = false; ctrlRechts = false; resetLenkButtons(); sende('RÜCKWÄRTS'); } else { sende('STOP_FAHREN'); }
+            }
+            else if (richtung === 'LINKS') {
+                ctrlRechts = false; document.getElementById('rechtsBtn').classList.remove('toggle-aktiv');
+                ctrlLinks = !ctrlLinks; document.getElementById('linksBtn').classList.toggle('toggle-aktiv', ctrlLinks);
+                if (ctrlLinks) { ctrlVor = false; ctrlZurueck = false; resetFahrButtons(); sende('LINKS'); } else { sende('STOP_FAHREN'); }
+            }
+            else if (richtung === 'RECHTS') {
+                ctrlLinks = false; document.getElementById('linksBtn').classList.remove('toggle-aktiv');
+                ctrlRechts = !ctrlRechts; document.getElementById('rechtsBtn').classList.toggle('toggle-aktiv', ctrlRechts);
+                if (ctrlRechts) { ctrlVor = false; ctrlZurueck = false; resetFahrButtons(); sende('RECHTS'); } else { sende('STOP_FAHREN'); }
             }
         }
 
-        function sendeFrage() {
-            const text = document.getElementById('frageInput').value;
-            if(!text) return;
-            sende("FRAGE:" + text);
-            document.getElementById('antwort-rueckmeldung').innerText = "Frage gesendet...";
-            document.getElementById('frageInput').value = "";
+        function resetFahrButtons() {
+            document.getElementById('vorBtn').classList.remove('toggle-aktiv');
+            document.getElementById('zurueckBtn').classList.remove('toggle-aktiv');
+        }
+        function resetLenkButtons() {
+            document.getElementById('linksBtn').classList.remove('toggle-aktiv');
+            document.getElementById('rechtsBtn').classList.remove('toggle-aktiv');
         }
 
-        function setupControllerEmpfang() {
-            verbindung.on('data', (daten) => {
-                if (daten.startsWith("ANTWORT:")) {
-                    const antwort = daten.split(":")[1];
-                    const rueckmeldung = document.getElementById('antwort-rueckmeldung');
-                    if(antwort === 'JA') {
-                        rueckmeldung.innerHTML = "iPad sagt: <span style='color:#28a745; font-weight:bold;'>JA 👍</span>";
-                    } else {
-                        rueckmeldung.innerHTML = "iPad sagt: <span style='color:#dc3545; font-weight:bold;'>NEIN 👎</span>";
-                    }
-                }
-            });
+        // Hupe rastet ein
+        function klickeHupe() {
+            ctrlHupe = !ctrlHupe;
+            document.getElementById('hupeBtn').classList.toggle('toggle-aktiv', ctrlHupe);
+            if (ctrlHupe) sende('HUPE_AN'); else sende('HUPE_AUS');
+        }
+
+        // Stopp-Bremse setzt ALLES auf Aus zurück
+        function klickeBremse() {
+            ctrlVor = false; ctrlZurueck = false; ctrlLinks = false; ctrlRechts = false;
+            ctrlBlinkerL = false; ctrlBlinkerR = false; ctrlTreppe = false; ctrlSirene = false; ctrlHupe = false;
+            
+            resetFahrButtons(); resetLenkButtons();
+            document.getElementById('blinkerLBtn').classList.remove('toggle-aktiv');
+            document.getElementById('blinkerRBtn').classList.remove('toggle-aktiv');
+            document.getElementById('treppeBtn').classList.remove('toggle-aktiv');
+            document.getElementById('sireneBtn').classList.remove('toggle-aktiv');
+            document.getElementById('hupeBtn').classList.remove('toggle-aktiv');
+
+            sende('BREMSE_AN');
+            setTimeout(() => { sende('BREMSE_AUS'); }, 500);
         }
 
         function klickeBlinker(richtung) {
@@ -314,11 +324,31 @@
             sende('SIRENE');
         }
 
+        function sendeFrage() {
+            const text = document.getElementById('frageInput').value;
+            if(!text) return;
+            sende("FRAGE:" + text);
+            document.getElementById('antwort-rueckmeldung').innerText = "Frage gesendet...";
+            document.getElementById('frageInput').value = "";
+        }
+
+        function setupControllerEmpfang() {
+            verbindung.on('data', (daten) => {
+                if (daten.startsWith("ANTWORT:")) {
+                    const antwort = daten.split(":")[1];
+                    const rueckmeldung = document.getElementById('antwort-rueckmeldung');
+                    if(antwort === 'JA') rueckmeldung.innerHTML = "iPad sagt: <span style='color:#28a745; font-weight:bold;'>JA 👍</span>";
+                    else rueckmeldung.innerHTML = "iPad sagt: <span style='color:#dc3545; font-weight:bold;'>NEIN 👎</span>";
+                }
+            });
+        }
+
         function antworte(wert) {
             document.getElementById('frage-overlay').style.display = 'none';
             if (verbindung && verbindung.open) { verbindung.send("ANTWORT:" + wert); }
         }
 
+        // --- IPAD EMPFÄNGER FUNKTIONEN ---
         function setupEmpfaengerDaten() {
             verbindung.on('data', (befehl) => {
                 if (befehl.startsWith("FRAGE:")) {
@@ -338,12 +368,12 @@
                 
                 if (bremseLäuft || (treppenModus && befehl !== 'TREPPE')) return;
 
-                if (befehl === 'VORWÄRTS') zeigeRichtung('VORWÄRTS', '#006400');
-                if (befehl === 'RÜCKWÄRTS') zeigeRichtung('RÜCKWÄRTS', '#8B0000');
-                if (befehl === 'LINKS') zeigeRichtung('LINKS', '#4B0082');
-                if (befehl === 'RECHTS') zeigeRichtung('RECHTS', '#4A3B00');
+                if (befehl === 'VORWÄRTS') zeigeRichtung('VORWÄRTS ⬆️', '#006400');
+                if (befehl === 'RÜCKWÄRTS') zeigeRichtung('⬇️ RÜCKWÄRTS', '#8B0000');
+                if (befehl === 'LINKS') zeigeRichtung('LINKS ⬅️', '#4B0082');
+                if (befehl === 'RECHTS') zeigeRichtung('➡️ RECHTS', '#4A3B00');
                 
-                if (befehl === 'STOP_FAHREN' && !alarmLäuft && !blinkerLinks && !blinkerRechts && !treppenModus) allesAusschalten();
+                if (befehl === 'STOP_FAHREN') allesAusschalten();
 
                 if (befehl === 'TREPPE') { if (!treppenModus) starteTreppe(); else stoppeTreppe(); }
                 if (befehl === 'HUPE_AN' && !hupeLäuft) starteHupe();
@@ -373,8 +403,9 @@
         }
 
         function starteBremse() {
-            bremseLäuft = true; if (treppenModus) stoppeTreppe(); stoppeAlarm(); allesAusschalten();
-            rText.innerText = "🛑 BREMSE!"; document.body.style.backgroundColor = "#ff1111";
+            bremseLäuft = true; if (treppenModus) stoppeTreppe(); stoppeAlarm(); stoppeHupe();
+            allesAusschalten();
+            rText.innerText = "🛑 ALL-STOP / BREMSE"; document.body.style.backgroundColor = "#ff1111";
             if (!audioCtx) return;
             const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
             osc.type = 'sawtooth'; osc.frequency.setValueAtTime(300, audioCtx.currentTime); osc.frequency.exponentialRampToValueAtTime(80, audioCtx.currentTime + 0.4);
@@ -420,3 +451,4 @@
     </script>
 </body>
 </html>
+
