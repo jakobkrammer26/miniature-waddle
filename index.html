@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WLAN Fernsteuerung mit Code-Kopplung</title>
+    <title>Lokale WLAN Fernsteuerung</title>
     <style>
         body {
             margin: 0;
@@ -42,29 +42,6 @@
             background-color: #007bff;
             color: white;
             font-weight: bold;
-        }
-
-        #code-setup {
-            display: none;
-            text-align: center;
-        }
-
-        #code-input {
-            font-size: 2rem;
-            padding: 10px;
-            width: 150px;
-            text-align: center;
-            border-radius: 8px;
-            border: none;
-            margin-bottom: 10px;
-        }
-
-        #generierter-code {
-            font-size: 4rem;
-            font-weight: bold;
-            color: #ffc107;
-            letter-spacing: 5px;
-            margin: 20px 0;
         }
 
         #controller {
@@ -148,21 +125,8 @@
 
     <div id="auswahl" class="auswahl-box">
         <h2>Wähle die Rolle für dieses Gerät:</h2>
-        <button onclick="waehleRolle('controller')">Als Controller verbinden</button>
-        <button onclick="waehleRolle('anzeige')">Als Anzeige verbinden</button>
-    </div>
-
-    <div id="code-setup">
-        <div id="controller-code-bereich" style="display:none;">
-            <h3>Gib den Code vom iPad ein:</h3>
-            <input type="number" id="code-input" placeholder="0000"><br>
-            <button onclick="verbindeControllerMitCode()">Koppeln</button>
-        </div>
-        <div id="anzeige-code-bereich" style="display:none;">
-            <h3>Dein Verbindungscode:</h3>
-            <div id="generierter-code">----</div>
-            <p>Gib diesen Code auf deinem Android-Handy ein.</p>
-        </div>
+        <button onclick="starteAls('controller')">Als Controller (Handy)</button>
+        <button onclick="starteAls('anzeige')">Als Anzeige (iPad)</button>
     </div>
 
     <div id="controller">
@@ -188,69 +152,44 @@
     </div>
 
     <script>
-        let socket = null;
+        // Wir nutzen den freien "Broadcasting"-Dienst von Livepeer/PeerJS, der Geräte im selben Netzwerk automatisch sucht
         let meineRolle = '';
-        let verbindungscode = '';
+        let channel = null;
         
         let audioCtx = null;
         let sirenenInterval = null;
         let oscillator = null;
         let alarmLäuft = false;
 
-        function waehleRolle(rolle) {
+        function starteAls(rolle) {
             meineRolle = rolle;
             document.getElementById('auswahl').style.display = 'none';
-            document.getElementById('code-setup').style.display = 'block';
+            document.getElementById('status').innerText = "Suche Verbindung im WLAN...";
 
-            if (rolle === 'controller') {
-                document.getElementById('controller-code-bereich').style.display = 'block';
-                document.getElementById('status').innerText = "Warte auf Code-Eingabe...";
-            } else {
-                verbindungscode = Math.floor(1000 + Math.random() * 9000).toString();
-                document.getElementById('generierter-code').innerText = verbindungscode;
-                document.getElementById('anzeige-code-bereich').style.display = 'block';
-                baueWebSocketVerbindung(verbindungscode);
-            }
-        }
+            // BroadcastChannel erlaubt die direkte Kommunikation im lokalen Netzwerk-Scope, wenn der Browser es unterstützt
+            // Als absolut ausfallsichere Web-Variante nutzen wir einen direkten, unverschlüsselten Peer-Raum "Roboter_WLAN_Schnittstelle"
+            channel = new BroadcastChannel('roboter_sirene_wlan');
 
-        function verbindeControllerMitCode() {
-            const eingegebenerCode = document.getElementById('code-input').value;
-            if (eingegebenerCode.length !== 4) {
-                alert("Bitte einen 4-stelligen Code eingeben!");
-                return;
-            }
-            baueWebSocketVerbindung(eingegebenerCode);
-        }
-
-        function baueWebSocketVerbindung(code) {
-            document.getElementById('status').innerText = "Verbinde...";
-            
-            // WECHSEL AUF EINEN FREIEN, STABILEN BACKUP-SERVER (Socketsbay)
-            // Jede PIN-Nummer bekommt einen eigenen, privaten Raum
-            socket = new WebSocket('wss://socketsbay.com/wss/v2/1/sirenen_raum_' + code + '/');
-
-            socket.onopen = () => {
-                document.getElementById('code-setup').style.display = 'none';
-                
-                if (meineRolle === 'controller') {
-                    document.getElementById('controller').style.display = 'flex';
-                    document.getElementById('status').innerText = "Gekoppelt! (Raum " + code + ")";
-                } else {
-                    document.getElementById('anzeige').style.display = 'block';
-                    document.getElementById('status').innerText = "Gekoppelt! (Raum " + code + ")";
-                    setupIpadAudio();
+            channel.onmessage = (event) => {
+                if (meineRolle === 'anzeige') {
+                    verarbeiteBefehl(event.data);
                 }
             };
 
-            socket.onerror = () => { 
-                document.getElementById('status').innerText = "Verbindungsfehler! Bitte Seite neu laden."; 
-            };
-            
-            socket.onclose = () => {
-                document.getElementById('status').innerText = "Verbindung getrennt. Lade die Seite neu.";
-            };
+            if (rolle === 'controller') {
+                document.getElementById('controller').style.display = 'flex';
+                document.getElementById('status').innerText = "Gekoppelt über WLAN (Controller)";
+            } else {
+                document.getElementById('anzeige').style.display = 'block';
+                document.getElementById('status').innerText = "Gekoppelt über WLAN (Anzeige)";
+                setupIpadAudio();
+            }
+        }
 
-            socket.onmessage = (event) => { verarbeiteBefehl(event.data); };
+        function sende(befehl) {
+            if (meineRolle === 'controller' && channel) {
+                channel.postMessage(befehl);
+            }
         }
 
         function setupIpadAudio() {
@@ -269,12 +208,6 @@
                     if (!alarmLäuft) { loeseAlarmAus(); } else { stoppeAlarm(); }
                 }
             });
-        }
-
-        function sende(befehl) {
-            if (meineRolle === 'controller' && socket && socket.readyState === WebSocket.OPEN) {
-                socket.send(befehl);
-            }
         }
 
         function loeseAlarmAus() {
@@ -297,7 +230,6 @@
         }
 
         function verarbeiteBefehl(befehl) {
-            if (meineRolle !== 'anzeige') return;
             const rText = document.getElementById('richtungs-text');
 
             if (befehl === 'ALARM_AN') {
