@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-select=none">
-    <title>Roboter Fernsteuerung - Freier Text-Antwort</title>
+    <title>Roboter Fernsteuerung - Frage-Schnittstelle Repariert</title>
     <style>
         body {
             margin: 0;
@@ -73,7 +73,6 @@
         #btnOpt1 { background-color: #28a745; }
         #btnOpt2 { background-color: #dc3545; }
 
-        /* Neues Tippfeld für das iPad */
         .ipad-tipp-box {
             display: flex; gap: 15px; width: 80%; max-width: 600px; background-color: #222; padding: 15px; border-radius: 20px;
         }
@@ -232,15 +231,16 @@
 
         function sende(befehl) { if (meineRolle === 'controller' && verbindung && verbindung.open) { verbindung.send(befehl); } }
 
-        // --- HANDY FUNKTIONEN ---
+        // --- HANDY STEUERUNG (REPARIERTER VERSAND) ---
         function sendeEigeneFrage() {
             const frageText = document.getElementById('frageInput').value;
             let o1 = document.getElementById('opt1Input').value || "JA 👍";
             let o2 = document.getElementById('opt2Input').value || "NEIN 👎";
             if(!frageText) return;
 
-            const paket = { typ: "CUSTOM_FRAGE", frage: frageText, opt1: o1, opt2: o2 };
-            sende(JSON.stringify(paket));
+            // Einfacher, sicherer Text-Versand mit Trennzeichen "|" statt JSON-Code
+            sende("NEUE_FRAGE:" + frageText + "|" + o1 + "|" + o2);
+            
             document.getElementById('antwort-rueckmeldung').innerText = "Frage gesendet... Warte auf Antwort.";
             document.getElementById('frageInput').value = "";
         }
@@ -295,12 +295,11 @@
             if (verbindung && verbindung.open) verbindung.send("ERGEBNIS:" + gewaehlterText);
         }
 
-        // NEU: Freitext-Antwort vom iPad absenden
         function antworteFreitext() {
             const text = document.getElementById('ipadTextInput').value;
             if(!text) return;
             document.getElementById('frage-overlay').style.display = 'none';
-            document.getElementById('ipadTextInput').value = ""; // Textfeld leeren
+            document.getElementById('ipadTextInput').value = "";
             if (verbindung && verbindung.open) verbindung.send("ERGEBNIS:" + text);
         }
 
@@ -318,28 +317,33 @@
         }
         function stoppeUeberlastung() { ueberlastModus = false; document.body.classList.remove('ueberlast-aktiv'); document.body.style.backgroundColor = '#111'; rText.innerText = "•"; }
 
-        // --- IPAD EMPFÄNGER LOGIK ---
+        // --- IPAD EMPFÄNGER LOGIK (REPARIERTE ENTSCHLÜSSELUNG) ---
         function setupEmpfaengerDaten() {
             verbindung.on('data', (befehl) => {
                 if (befehl === 'UEBERLAST_AN') { starteUeberlastung(); return; }
                 if (befehl === 'UEBERLAST_AUS') { stoppeUeberlastung(); return; }
                 if (ueberlastModus) return;
 
-                if (typeof befehl === "string" && befehl.includes("CUSTOM_FRAGE")) {
-                    try {
-                        const daten = JSON.parse(befehl);
-                        document.getElementById('frage-titel').innerText = daten.frage;
-                        document.getElementById('btnOpt1').innerText = daten.opt1;
-                        document.getElementById('btnOpt2').innerText = daten.opt2;
-                        
-                        document.getElementById('frage-overlay').style.display = 'flex';
-                        
-                        if (audioCtx) {
-                            const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
-                            osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-                            osc.connect(gain); gain.connect(audioCtx.destination); osc.start(); osc.stop(audioCtx.currentTime + 0.15);
-                        }
-                    } catch(e) {}
+                // Sicheres Auslesen der Frage ohne JSON-Fehler
+                if (typeof befehl === "string" && befehl.startsWith("NEUE_FRAGE:")) {
+                    const rohdaten = befehl.substring(11); // "NEUE_FRAGE:" abschneiden
+                    const teile = rohdaten.split("|");     // Am Trennzeichen zerlegen
+                    
+                    const frageText = teile[0];
+                    const opt1Text = teile[1];
+                    const opt2Text = teile[2];
+
+                    document.getElementById('frage-titel').innerText = frageText;
+                    document.getElementById('btnOpt1').innerText = opt1Text;
+                    document.getElementById('btnOpt2').innerText = opt2Text;
+                    
+                    document.getElementById('frage-overlay').style.display = 'flex';
+                    
+                    if (audioCtx) {
+                        const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+                        osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                        osc.connect(gain); gain.connect(audioCtx.destination); osc.start(); osc.stop(audioCtx.currentTime + 0.15);
+                    }
                     return;
                 }
 
@@ -368,7 +372,7 @@
         function allesAusschalten() { if(ueberlastModus) return; blinkerLinks = false; blinkerRechts = false; document.body.style.backgroundColor = '#111'; rText.innerText = "•"; document.body.classList.remove('blinker-links-aktiv', 'blinker-rechts-aktiv'); clearInterval(blinkerInterval); }
 
         function starteBremse() {
-            bremseLäuft = true; if (treppenModus) stoppePreppe(); stoppeAlarm(); stoppeHupe(); allesAusschalten();
+            bremseLäuft = true; if (treppenModus) stoppeTreppe(); stoppeAlarm(); stoppeHupe(); allesAusschalten();
             rText.innerText = "🛑 ALL-STOP / BREMSE"; document.body.style.backgroundColor = "#ff1111";
             if (!audioCtx) return;
             const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
