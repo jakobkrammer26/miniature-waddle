@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-select=none">
-    <title>Super Roboter Fernsteuerung mit Frage-Funktion</title>
+    <title>Kinderleichte Roboter-Steuerung</title>
     <style>
         body {
             margin: 0;
@@ -52,75 +52,105 @@
         
         #status { position: absolute; top: 15px; color: #666; font-size: 0.9rem; font-family: Arial, sans-serif; }
 
-        /* --- FRAGE-SYSTEM AUF DEM IPAD --- */
+        /* --- FRAGE-SYSTEM --- */
         #frage-overlay {
-            display: none;
-            background: rgba(0,0,0,0.95);
+            display: none; background: rgba(0,0,0,0.95);
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             flex-direction: column; justify-content: center; align-items: center; z-index: 100;
         }
         #frage-titel { font-size: 3rem; margin-bottom: 30px; padding: 0 20px; text-align: center; }
         .antwort-box { display: flex; gap: 30px; }
-        .btn-antwort {
-            padding: 25px 60px; font-size: 2.5rem; border: none; border-radius: 20px; font-weight: bold; cursor: pointer;
-        }
+        .btn-antwort { padding: 25px 60px; font-size: 2.5rem; border: none; border-radius: 20px; font-weight: bold; cursor: pointer; }
         .btn-ja { background-color: #28a745; color: white; }
         .btn-nein { background-color: #dc3545; color: white; }
 
-        /* --- CONTROLLER DESIGN (HANDY) --- */
+        /* --- KINDERLEICHTER CONTROLLER --- */
         #controller-bereich {
             display: none;
             flex-direction: column;
-            justify-content: space-between;
-            width: 90%;
-            max-width: 400px;
-            height: 90vh;
+            width: 100vw;
+            height: 100vh;
+            box-sizing: border-box;
+            padding: 10px;
             gap: 10px;
         }
 
-        /* Frage-Senden Bereich auf dem Handy */
+        .top-bar {
+            display: flex; gap: 10px; height: 60px;
+        }
         .frage-sender-box {
-            background-color: #222; padding: 10px; border-radius: 15px;
+            flex: 1; background-color: #222; padding: 5px 10px; border-radius: 15px;
             display: flex; gap: 10px; align-items: center;
         }
         .frage-input {
-            flex: 1; padding: 12px; font-size: 1.1rem; border-radius: 10px; border: none;
-            background-color: #444; color: white; font-family: Arial, sans-serif;
+            flex: 1; padding: 10px; font-size: 1rem; border-radius: 10px; border: none;
+            background-color: #444; color: white;
         }
-        .btn-senden {
-            background-color: #6f42c1; color: white; border: none; padding: 12px 18px;
-            font-size: 1rem; font-weight: bold; border-radius: 10px; cursor: pointer;
-        }
-        #antwort-rueckmeldung {
-            text-align: center; font-size: 1.1rem; color: #ffc107; min-height: 25px; font-family: Arial, sans-serif;
+        .btn-senden { background-color: #6f42c1; color: white; border: none; padding: 10px 15px; font-weight: bold; border-radius: 10px; }
+
+        .info-bar { text-align: center; font-size: 1rem; color: #ffc107; font-family: Arial, sans-serif; height: 20px; }
+
+        /* Riesen-Bremse */
+        .mega-bremse {
+            background-color: #ff1111; color: white; font-size: 1.8rem; font-weight: bold;
+            text-align: center; padding: 15px; border-radius: 15px; cursor: pointer;
         }
 
-        .haupt-bremse {
-            background-color: #ff1111; color: white; font-size: 2rem; font-weight: bold;
-            text-align: center; padding: 20px; border-radius: 20px; box-shadow: 0 8px #990000; cursor: pointer;
+        /* Haupt-Fahrbereich: Geteilter Bildschirm */
+        .fahr-zone {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
         }
-        .haupt-bremse:active { box-shadow: 0 2px #990000; transform: translateY(6px); background-color: #cc0000; }
 
-        .steuer-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-
-        .btn-control {
-            background-color: #333; color: white; font-size: 2.3rem; display: flex;
-            justify-content: center; align-items: center; height: 85px; border-radius: 20px;
-            box-shadow: 0 6px #222; cursor: pointer;
+        .lenk-seite, .fahr-seite {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
         }
-        .btn-control:active { box-shadow: 0 2px #222; transform: translateY(4px); background-color: #444; }
 
-        .btn-vor { background-color: #28a745; box-shadow: 0 6px #1e7e34; }
-        .btn-vor:active { background-color: #1e7e34; }
-        .btn-zurueck { background-color: #ffc107; color: black; box-shadow: 0 6px #d39e00; }
-        .btn-zurueck:active { background-color: #d39e00; }
-        .btn-blinker { background-color: #ff8800; font-size: 1.1rem; box-shadow: 0 6px #cc6600; }
-        .btn-hupe { background-color: #007bff; grid-column: span 3; height: 65px; font-size: 1.4rem; box-shadow: 0 6px #0056b3; }
-        .btn-hupe:active { background-color: #0056b3; }
-        .btn-treppe { background-color: #17a2b8; font-size: 1.1rem; box-shadow: 0 6px #117a8b; }
-        .btn-sirene { background-color: #dc3545; font-size: 1.1rem; box-shadow: 0 6px #bd2130; }
+        .riesen-btn {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 3rem;
+            border-radius: 25px;
+            cursor: pointer;
+            background-color: #333;
+            box-shadow: inset 0 -8px rgba(0,0,0,0.3);
+        }
+        .riesen-btn:active {
+            box-shadow: inset 0 4px rgba(0,0,0,0.3);
+            background-color: #444;
+        }
 
-        .toggle-aktiv { background-color: #fff !important; color: #000 !important; box-shadow: 0 2px #aaa !important; transform: translateY(4px); }
+        /* Farben für die Riesen-Zonen */
+        .btn-links { background-color: #4B0082; }
+        .btn-rechts { background-color: #4A3B00; }
+        .btn-vorwaerts { background-color: #28a745; font-size: 4rem; }
+        .btn-rueckwaerts { background-color: #ffc107; color: black; font-size: 4rem; }
+
+        /* Untere Funktionsleiste */
+        .unten-bar {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            height: 85px;
+        }
+        .kleiner-btn {
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            font-size: 1.5rem; background-color: #222; border-radius: 15px; cursor: pointer;
+        }
+        .kleiner-btn span { font-size: 0.8rem; margin-top: 5px; font-family: Arial, sans-serif; }
+        
+        .btn-b-l { background-color: #ff8800; }
+        .btn-b-r { background-color: #ff8800; }
+        .btn-t { background-color: #17a2b8; }
+        .btn-s { background-color: #dc3545; }
+
+        .toggle-aktiv { background-color: #fff !important; color: #000 !important; }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.4.7/peerjs.min.js"></script>
 </head>
@@ -135,42 +165,48 @@
     </div>
 
     <div id="controller-bereich">
-        <div class="frage-sender-box">
-            <input type="text" id="frageInput" class="frage-input" placeholder="Frage an Roboter eingeben...">
-            <button class="btn-senden" onclick="sendeFrage()">Senden</button>
+        <div class="top-bar">
+            <div class="frage-sender-box">
+                <input type="text" id="frageInput" class="frage-input" placeholder="Frage eintippen...">
+                <button class="btn-senden" onclick="sendeFrage()">Senden</button>
+            </div>
         </div>
-        <div id="antwort-rueckmeldung"></div>
+        <div class="info-bar" id="antwort-rueckmeldung"></div>
 
-        <div class="haupt-bremse" 
+        <div class="mega-bremse" 
              onmousedown="sende('BREMSE_AN')" ontouchstart="sende('BREMSE_AN')"
-             onmouseup="sende('BREMSE_AUS')" ontouchend="sende('BREMSE_AUS')">🛑 BREMSEN</div>
+             onmouseup="sende('BREMSE_AUS')" ontouchend="sende('BREMSE_AUS')">🛑 STOP / BREMSE</div>
         
-        <div class="steuer-grid">
-            <div class="btn-control btn-blinker" id="blinkerLBtn" onclick="klickeBlinker('L')">⬅️ Blink</div>
-            <div class="btn-control btn-vor" onmousedown="sende('VORWÄRTS')" ontouchstart="sende('VORWÄRTS')" onmouseup="sende('STOP_FAHREN')" ontouchend="sende('STOP_FAHREN')">⬆️</div>
-            <div class="btn-control btn-blinker" id="blinkerRBtn" onclick="klickeBlinker('R')">Blink ➡️</div>
-            
-            <div class="btn-control" onmousedown="sende('LINKS')" ontouchstart="sende('LINKS')" onmouseup="sende('STOP_FAHREN')" ontouchend="sende('STOP_FAHREN')">⬅️</div>
-            <div class="btn-control btn-treppe" id="treppeBtn" onclick="klickeTreppe()">🧗 Treppe</div>
-            <div class="btn-control" onmousedown="sende('RECHTS')" ontouchstart="sende('RECHTS')" onmouseup="sende('STOP_FAHREN')" ontouchend="sende('STOP_FAHREN')">➡️</div>
-            
-            <div class="btn-control btn-sirene" id="sireneBtn" onclick="klickeSirene()">🚨 Sirene</div>
-            <div class="btn-control btn-zurueck" onmousedown="sende('RÜCKWÄRTS')" ontouchstart="sende('RÜCKWÄRTS')" onmouseup="sende('STOP_FAHREN')" ontouchend="sende('STOP_FAHREN')">⬇️</div>
-            <div class="btn-control" style="background:none; box-shadow:none; cursor:default;"></div>
-
-            <div class="btn-control btn-hupe" 
-                 onmousedown="sende('HUPE_AN')" ontouchstart="sende('HUPE_AN')"
-                 onmouseup="sende('HUPE_AUS')" ontouchend="sende('HUPE_AUS')">📯 HUPE DRÜCKEN</div>
+        <div class="fahr-zone">
+            <div class="lenk-seite">
+                <div class="riesen-btn btn-links" onmousedown="sende('LINKS')" ontouchstart="sende('LINKS')" onmouseup="sende('STOP_FAHREN')" ontouchend="sende('STOP_FAHREN')">⬅️</div>
+                <div class="riesen-btn btn-rechts" onmousedown="sende('RECHTS')" ontouchstart="sende('RECHTS')" onmouseup="sende('STOP_FAHREN')" ontouchend="sende('STOP_FAHREN')">➡️</div>
+            </div>
+            <div class="fahr-seite">
+                <div class="riesen-btn btn-vorwaerts" onmousedown="sende('VORWÄRTS')" ontouchstart="sende('VORWÄRTS')" onmouseup="sende('STOP_FAHREN')" ontouchend="sende('STOP_FAHREN')">⬆️</div>
+                <div class="riesen-btn btn-rueckwaerts" onmousedown="sende('RÜCKWÄRTS')" ontouchstart="sende('RÜCKWÄRTS')" onmouseup="sende('STOP_FAHREN')" ontouchend="sende('STOP_FAHREN')">⬇️</div>
+            </div>
         </div>
+
+        <div class="unten-bar">
+            <div class="kleiner-btn btn-b-l" id="blinkerLBtn" onclick="klickeBlinker('L')">⬅️<span>Blink</span></div>
+            <div class="kleiner-btn btn-b-r" id="blinkerRBtn" onclick="klickeBlinker('R')">➡️<span>Blink</span></div>
+            <div class="kleiner-btn btn-t" id="treppeBtn" onclick="klickeTreppe()">🧗<span>Treppe</span></div>
+            <div class="kleiner-btn btn-s" id="sireneBtn" onclick="klickeSirene()">🚨<span>Sirene</span></div>
+        </div>
+
+        <div class="riesen-btn" style="background-color: #28a745; height: 70px; font-size: 1.5rem;"
+             onmousedown="sende('HUPE_AN')" ontouchstart="sende('HUPE_AN')"
+             onmouseup="sende('HUPE_AUS')" ontouchend="sende('HUPE_AUS')">📯 HUPE DRÜCKEN</div>
     </div>
 
     <div id="anzeige-bereich">
         <div id="richtungs-text">STARTBEREIT</div>
-        <p id="klick-info" style="color:#ffc107; font-weight:bold; font-size: 1.5rem;">👉 EINMAL HIER DRAUF TIPPEN! 👈</p>
+        <p id="klick-info" style="color:#ffc107; font-weight:bold; font-size: 1.5rem;">👉 EINMAL REINTIPPEN! 👈</p>
     </div>
 
     <div id="frage-overlay">
-        <div id="frage-titel">Hier steht die Frage?</div>
+        <div id="frage-titel">Frage?</div>
         <div class="antwort-box">
             <button class="btn-antwort btn-ja" onclick="antworte('JA')">JA 👍</button>
             <button class="btn-antwort btn-nein" onclick="antworte('NEIN')">NEIN 👎</button>
@@ -234,25 +270,23 @@
             }
         }
 
-        // --- HANDY FUNKTIONEN ---
         function sendeFrage() {
             const text = document.getElementById('frageInput').value;
             if(!text) return;
             sende("FRAGE:" + text);
-            document.getElementById('antwort-rueckmeldung').innerText = "Frage gesendet... Warte auf Antwort.";
+            document.getElementById('antwort-rueckmeldung').innerText = "Frage gesendet...";
             document.getElementById('frageInput').value = "";
         }
 
         function setupControllerEmpfang() {
-            // Empfängt die Ja/Nein Antwort vom iPad zurück auf das Handy
             verbindung.on('data', (daten) => {
                 if (daten.startsWith("ANTWORT:")) {
                     const antwort = daten.split(":")[1];
                     const rueckmeldung = document.getElementById('antwort-rueckmeldung');
                     if(antwort === 'JA') {
-                        rueckmeldung.innerHTML = "iPad hat geantwortet: <span style='color:#28a745; font-weight:bold;'>JA 👍</span>";
+                        rueckmeldung.innerHTML = "iPad sagt: <span style='color:#28a745; font-weight:bold;'>JA 👍</span>";
                     } else {
-                        rueckmeldung.innerHTML = "iPad hat geantwortet: <span style='color:#dc3545; font-weight:bold;'>NEIN 👎</span>";
+                        rueckmeldung.innerHTML = "iPad sagt: <span style='color:#dc3545; font-weight:bold;'>NEIN 👎</span>";
                     }
                 }
             });
@@ -280,29 +314,21 @@
             sende('SIRENE');
         }
 
-        // --- IPAD EMPFÄNGER FUNKTIONEN ---
         function antworte(wert) {
             document.getElementById('frage-overlay').style.display = 'none';
-            if (verbindung && verbindung.open) {
-                verbindung.send("ANTWORT:" + wert);
-            }
+            if (verbindung && verbindung.open) { verbindung.send("ANTWORT:" + wert); }
         }
 
         function setupEmpfaengerDaten() {
             verbindung.on('data', (befehl) => {
-                // Wenn eine Frage reinkommt
                 if (befehl.startsWith("FRAGE:")) {
                     const frageText = befehl.substring(6);
                     document.getElementById('frage-titel').innerText = frageText;
                     document.getElementById('frage-overlay').style.display = 'flex';
-                    
-                    // Kurzer Benachrichtigungston auf dem iPad
                     if (audioCtx) {
                         const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
-                        osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5 Note
-                        gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-                        osc.connect(gain); gain.connect(audioCtx.destination);
-                        osc.start(); osc.stop(audioCtx.currentTime + 0.15);
+                        osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                        osc.connect(gain); gain.connect(audioCtx.destination); osc.start(); osc.stop(audioCtx.currentTime + 0.15);
                     }
                     return;
                 }
@@ -325,13 +351,11 @@
                 
                 if (befehl === 'BLINKER_L') { 
                     blinkerRechts = false; document.body.classList.remove('blinker-rechts-aktiv');
-                    blinkerLinks = true; document.body.classList.add('blinker-links-aktiv'); 
-                    rText.innerText = "⬅️ BLINKER L"; starteBlinkerSound(); 
+                    blinkerLinks = true; document.body.classList.add('blinker-links-aktiv'); rText.innerText = "⬅️ BLINKER L"; starteBlinkerSound(); 
                 }
                 if (befehl === 'BLINKER_R') { 
                     blinkerLinks = false; document.body.classList.remove('blinker-links-aktiv');
-                    blinkerRechts = true; document.body.classList.add('blinker-rechts-aktiv'); 
-                    rText.innerText = "BLINKER R ➡️"; starteBlinkerSound(); 
+                    blinkerRechts = true; document.body.classList.add('blinker-rechts-aktiv'); rText.innerText = "BLINKER R ➡️"; starteBlinkerSound(); 
                 }
                 if (befehl === 'STOP_BLINKER') allesAusschalten();
                 
@@ -360,29 +384,19 @@
         function stoppeBremse() { bremseLäuft = false; allesAusschalten(); }
 
         function starteTreppe() {
-            treppenModus = true; stoppeAlarm(); allesAusschalten();
-            rText.innerText = "🧗 TREPPENSTEIGEN";
-            document.body.style.backgroundColor = "#ffffff";
-            document.body.style.color = "#000000";
-
+            treppenModus = true; stoppeAlarm(); allesAusschalten(); rText.innerText = "🧗 TREPPENSTEIGEN"; document.body.style.backgroundColor = "#ffffff"; document.body.style.color = "#000000";
             if (!audioCtx) return;
             oscillatorTreppe = audioCtx.createOscillator(); const gainNode = audioCtx.createGain();
-            oscillatorTreppe.type = 'triangle'; oscillatorTreppe.frequency.setValueAtTime(90, audioCtx.currentTime);
-            gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            oscillatorTreppe.type = 'triangle'; oscillatorTreppe.frequency.setValueAtTime(90, audioCtx.currentTime); gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
             oscillatorTreppe.connect(gainNode); gainNode.connect(audioCtx.destination); oscillatorTreppe.start();
         }
-        function stoppeTreppe() {
-            treppenModus = false; document.body.style.color = "#ffffff";
-            if (oscillatorTreppe) { try { oscillatorTreppe.stop(); } catch(e) {} }
-            allesAusschalten();
-        }
+        function stoppeTreppe() { treppenModus = false; document.body.style.color = "#ffffff"; if (oscillatorTreppe) { try { oscillatorTreppe.stop(); } catch(e) {} } allesAusschalten(); }
 
         function starteBlinkerSound() { clearInterval(blinkerInterval); spieleKlickTon(); blinkerInterval = setInterval(spieleKlickTon, 400); }
         function spieleKlickTon() {
             if (!audioCtx) return;
             const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
-            osc.type = 'triangle'; osc.frequency.setValueAtTime(120, audioCtx.currentTime);
-            gain.gain.setValueAtTime(0.2, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.05);
+            osc.type = 'triangle'; osc.frequency.setValueAtTime(120, audioCtx.currentTime); gain.gain.setValueAtTime(0.2, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.05);
             osc.connect(gain); gain.connect(audioCtx.destination); osc.start(); osc.stop(audioCtx.currentTime + 0.06);
         }
 
