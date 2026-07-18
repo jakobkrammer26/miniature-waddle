@@ -44,7 +44,6 @@
             font-weight: bold;
         }
 
-        /* Code-Eingabe Setup */
         #code-setup {
             display: none;
             text-align: center;
@@ -68,7 +67,6 @@
             margin: 20px 0;
         }
 
-        /* Controller Layout (Android) */
         #controller {
             display: none;
             flex-direction: column;
@@ -106,7 +104,6 @@
         .alarm-btn:active { background-color: #bd2130; }
         .stop-btn { background-color: #6c757d; }
 
-        /* Anzeige Layout (iPad) */
         #anzeige {
             display: none;
             text-align: center;
@@ -147,7 +144,7 @@
 </head>
 <body>
 
-    <div id="status">Verbinde mit Netzwerk...</div>
+    <div id="status">Bereit. Bitte Rolle wählen.</div>
 
     <div id="auswahl" class="auswahl-box">
         <h2>Wähle die Rolle für dieses Gerät:</h2>
@@ -200,8 +197,6 @@
         let oscillator = null;
         let alarmLäuft = false;
 
-        document.getElementById('status').innerText = "Bereit. Bitte Rolle wählen.";
-
         function waehleRolle(rolle) {
             meineRolle = rolle;
             document.getElementById('auswahl').style.display = 'none';
@@ -211,13 +206,9 @@
                 document.getElementById('controller-code-bereich').style.display = 'block';
                 document.getElementById('status').innerText = "Warte auf Code-Eingabe...";
             } else {
-                // Code für das iPad generieren (Zufallszahl zwischen 1000 und 9999)
                 verbindungscode = Math.floor(1000 + Math.random() * 9000).toString();
                 document.getElementById('generierter-code').innerText = verbindungscode;
                 document.getElementById('anzeige-code-bereich').style.display = 'block';
-                document.getElementById('status').innerText = "Warte auf Kopplung...";
-                
-                // WebSocket direkt mit dem generierten Code starten
                 baueWebSocketVerbindung(verbindungscode);
             }
         }
@@ -232,29 +223,36 @@
         }
 
         function baueWebSocketVerbindung(code) {
-            document.getElementById('status').innerText = "Verbinde mit Raum " + code + "...";
+            document.getElementById('status').innerText = "Verbinde...";
             
-            // Der Code wird direkt an die Server-URL angehängt, damit sich nur Geräte mit demselben Code hören
-            socket = new WebSocket('wss://demo.piehost.com/v3/sirene_room_' + code + '?api_key=VCXCEuvhGcBDP7XhiJZ2D9wJecP96NfA4wTy0iCO');
+            // WECHSEL AUF EINEN FREIEN, STABILEN BACKUP-SERVER (Socketsbay)
+            // Jede PIN-Nummer bekommt einen eigenen, privaten Raum
+            socket = new WebSocket('wss://socketsbay.com/wss/v2/1/sirenen_raum_' + code + '/');
 
             socket.onopen = () => {
                 document.getElementById('code-setup').style.display = 'none';
                 
                 if (meineRolle === 'controller') {
                     document.getElementById('controller').style.display = 'flex';
-                    document.getElementById('status').innerText = "Gekoppelt! Modus: Controller";
+                    document.getElementById('status').innerText = "Gekoppelt! (Raum " + code + ")";
                 } else {
                     document.getElementById('anzeige').style.display = 'block';
-                    document.getElementById('status').innerText = "Gekoppelt! Modus: Anzeige";
+                    document.getElementById('status').innerText = "Gekoppelt! (Raum " + code + ")";
                     setupIpadAudio();
                 }
             };
 
-            socket.onerror = () => { document.getElementById('status').innerText = "Verbindungsfehler!"; };
+            socket.onerror = () => { 
+                document.getElementById('status').innerText = "Verbindungsfehler! Bitte Seite neu laden."; 
+            };
+            
+            socket.onclose = () => {
+                document.getElementById('status').innerText = "Verbindung getrennt. Lade die Seite neu.";
+            };
+
             socket.onmessage = (event) => { verarbeiteBefehl(event.data); };
         }
 
-        // Steuerung für das iPad
         function setupIpadAudio() {
             const anzeigeBock = document.getElementById('anzeige');
             const richtungsText = document.getElementById('richtungs-text');
