@@ -43,7 +43,7 @@
 
         button:active { background: #0369a1; }
 
-        #reader {
+        #interactive {
             width: 100%;
             margin-top: 15px;
             border-radius: 12px;
@@ -71,8 +71,8 @@
 
     <div id="scan-step">
         <p>Tippe unten, um den QR-Code vom iPad zu scannen:</p>
-        <button id="start-btn" onclick="startScanner()">Kamera öffnen & Scannen</button>
-        <div id="reader"></div>
+        <button id="start-btn" onclick="startCamera()">Kamera starten</button>
+        <div id="interactive"></div>
     </div>
 
     <div id="pay-step" class="hidden">
@@ -84,61 +84,65 @@
     <div id="done-msg" class="done">
         ✅ Geld abgebucht!
         <br><br>
-        <button style="background:#16a34a;" onclick="resetScanner()">Nächste Zahlung</button>
+        <button style="background:#16a34a;" onclick="resetApp()">Nächste Zahlung</button>
     </div>
 </div>
 
 <script>
     let currentTopic = null;
-    let html5QrcodeScanner = null;
+    let html5QrCode = null;
 
-    function startScanner() {
+    async function startCamera() {
         document.getElementById('start-btn').style.display = 'none';
+        html5QrCode = new Html5Qrcode("interactive");
 
-        html5QrcodeScanner = new Html5QrcodeScanner("reader", { 
-            fps: 10, 
-            qrbox: { width: 220, height: 220 } 
-        });
-
-        html5QrcodeScanner.render((decodedText) => {
+        const qrCodeSuccessCallback = (decodedText) => {
             try {
-                // Liest die Kassen-Daten aus dem QR-Code
                 const data = JSON.parse(decodedText);
                 if (data.topic && data.amount) {
                     currentTopic = data.topic;
                     document.getElementById('display-amount').innerText = data.amount + ' €';
                     
-                    // Schließt die Kamera und zeigt den Bezahlen-Knopf
-                    html5QrcodeScanner.clear();
-                    document.getElementById('scan-step').classList.add('hidden');
-                    document.getElementById('pay-step').classList.remove('hidden');
+                    // Kamera stoppen
+                    html5QrCode.stop().then(() => {
+                        document.getElementById('scan-step').classList.add('hidden');
+                        document.getElementById('pay-step').classList.remove('hidden');
+                    });
                 }
             } catch (e) {
-                console.log("Kein gültiger Kassen-Code.");
+                console.log("Kein gültiger Kassen-Code");
             }
+        };
+
+        const config = { fps: 10, qrbox: { width: 220, height: 220 } };
+
+        // Erzwinge die Rückkamera (facingMode: environment)
+        html5QrCode.start(
+            { facingMode: "environment" }, 
+            config, 
+            qrCodeSuccessCallback
+        ).catch(err => {
+            alert("Kamera-Fehler: Bitte schließe andere Kamera-Apps und erlaube den Kamera-Zugriff im Browser.");
+            document.getElementById('start-btn').style.display = 'block';
         });
     }
 
     function payNow() {
         if (!currentTopic) return;
 
-        // Schickt das Signal an das iPad zurück
         fetch(`https://ntfy.sh/${currentTopic}`, {
             method: 'POST',
             body: 'PAID'
         }).then(() => {
             document.getElementById('pay-step').classList.add('hidden');
             document.getElementById('done-msg').style.display = 'block';
-        }).catch(() => {
-            alert("Fehler beim Senden der Bezahlung.");
         });
     }
 
-    function resetScanner() {
+    function resetApp() {
         document.getElementById('done-msg').style.display = 'none';
         document.getElementById('scan-step').classList.remove('hidden');
         document.getElementById('start-btn').style.display = 'block';
-        document.getElementById('reader').innerHTML = '';
     }
 </script>
 
