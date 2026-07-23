@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Eisdiele1Bezahlung</title>
+    <title>Eisdiele Bezahlung</title>
+    <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             text-align: center;
-            padding: 40px 20px;
+            padding: 20px;
             background: #f0f9ff;
             color: #0c4a6e;
             margin: 0;
@@ -16,7 +17,7 @@
 
         .card {
             background: white;
-            padding: 30px;
+            padding: 25px;
             border-radius: 20px;
             border: 2px solid #bae6fd;
             box-shadow: 0 4px 15px rgba(2, 132, 199, 0.15);
@@ -25,21 +26,29 @@
         }
 
         h1 { color: #0284c7; margin-top: 0; }
-        .amount { font-size: 2.5rem; font-weight: bold; color: #0369a1; margin: 20px 0; }
+        .amount { font-size: 2.5rem; font-weight: bold; color: #0369a1; margin: 15px 0; }
 
         button {
             background: #0284c7;
             color: white;
             border: none;
-            padding: 18px 30px;
-            font-size: 1.2rem;
+            padding: 16px;
+            font-size: 1.1rem;
             font-weight: bold;
             border-radius: 14px;
             width: 100%;
             cursor: pointer;
+            margin-top: 10px;
         }
 
         button:active { background: #0369a1; }
+
+        #reader {
+            width: 100%;
+            margin-top: 15px;
+            border-radius: 12px;
+            overflow: hidden;
+        }
 
         .done {
             background: #dcfce7;
@@ -51,43 +60,85 @@
             margin-top: 15px;
             display: none;
         }
+
+        .hidden { display: none; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <h1>🍦 Eisdiele Bezahlung</h1>
-    <p>Zu zahlender Betrag:</p>
-    <div class="amount" id="display-amount">0,00 €</div>
-    
-    <button id="pay-btn" onclick="payNow()">Jetzt Bezahlen</button>
-    <div id="done-msg" class="done">✅ Geld abgebucht</div>
+    <h1>🍦 Eisdiele Bezahlen</h1>
+
+    <div id="scan-step">
+        <p>Tippe unten, um den QR-Code vom iPad zu scannen:</p>
+        <button id="start-btn" onclick="startScanner()">Kamera öffnen & Scannen</button>
+        <div id="reader"></div>
+    </div>
+
+    <div id="pay-step" class="hidden">
+        <p>Zu zahlender Betrag:</p>
+        <div class="amount" id="display-amount">0,00 €</div>
+        <button onclick="payNow()">Jetzt Bezahlen</button>
+    </div>
+
+    <div id="done-msg" class="done">
+        ✅ Geld abgebucht!
+        <br><br>
+        <button style="background:#16a34a;" onclick="resetScanner()">Nächste Zahlung</button>
+    </div>
 </div>
 
 <script>
-    // Parameter aus der URL lesen (?topic=...&amount=...)
-    const urlParams = new URLSearchParams(window.location.search);
-    const topicId = urlParams.get('topic');
-    const amount = urlParams.get('amount') || '0.00';
+    let currentTopic = null;
+    let html5QrcodeScanner = null;
 
-    document.getElementById('display-amount').innerText = amount + ' €';
+    function startScanner() {
+        document.getElementById('start-btn').style.display = 'none';
+
+        html5QrcodeScanner = new Html5QrcodeScanner("reader", { 
+            fps: 10, 
+            qrbox: { width: 220, height: 220 } 
+        });
+
+        html5QrcodeScanner.render((decodedText) => {
+            try {
+                // Liest die Kassen-Daten aus dem QR-Code
+                const data = JSON.parse(decodedText);
+                if (data.topic && data.amount) {
+                    currentTopic = data.topic;
+                    document.getElementById('display-amount').innerText = data.amount + ' €';
+                    
+                    // Schließt die Kamera und zeigt den Bezahlen-Knopf
+                    html5QrcodeScanner.clear();
+                    document.getElementById('scan-step').classList.add('hidden');
+                    document.getElementById('pay-step').classList.remove('hidden');
+                }
+            } catch (e) {
+                console.log("Kein gültiger Kassen-Code.");
+            }
+        });
+    }
 
     function payNow() {
-        if (!topicId) {
-            alert("Fehler: Keine gültige Kassen-Sitzung gefunden!");
-            return;
-        }
+        if (!currentTopic) return;
 
-        // Sende das Signal über ntfy an das iPad
-        fetch(`https://ntfy.sh/${topicId}`, {
+        // Schickt das Signal an das iPad zurück
+        fetch(`https://ntfy.sh/${currentTopic}`, {
             method: 'POST',
             body: 'PAID'
         }).then(() => {
-            document.getElementById('pay-btn').style.display = 'none';
+            document.getElementById('pay-step').classList.add('hidden');
             document.getElementById('done-msg').style.display = 'block';
-        }).catch(err => {
+        }).catch(() => {
             alert("Fehler beim Senden der Bezahlung.");
         });
+    }
+
+    function resetScanner() {
+        document.getElementById('done-msg').style.display = 'none';
+        document.getElementById('scan-step').classList.remove('hidden');
+        document.getElementById('start-btn').style.display = 'block';
+        document.getElementById('reader').innerHTML = '';
     }
 </script>
 
