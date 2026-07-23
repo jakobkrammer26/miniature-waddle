@@ -11,7 +11,9 @@
             padding: 40px 20px;
             background: #f0f9ff;
             color: #0c4a6e;
+            margin: 0;
         }
+
         .card {
             background: white;
             padding: 30px;
@@ -21,8 +23,10 @@
             max-width: 360px;
             margin: 0 auto;
         }
+
         h1 { color: #0284c7; margin-top: 0; }
         .amount { font-size: 2.5rem; font-weight: bold; color: #0369a1; margin: 20px 0; }
+
         button {
             background: #0284c7;
             color: white;
@@ -34,7 +38,9 @@
             width: 100%;
             cursor: pointer;
         }
+
         button:active { background: #0369a1; }
+
         .done {
             background: #dcfce7;
             color: #16a34a;
@@ -59,7 +65,7 @@
 </div>
 
 <script>
-    // URL Parameter auslesen (Betrag und Topic-ID)
+    // Parameter aus der URL lesen (?topic=...&amount=...)
     const urlParams = new URLSearchParams(window.location.search);
     const topicId = urlParams.get('topic');
     const amount = urlParams.get('amount') || '0.00';
@@ -68,20 +74,19 @@
 
     function payNow() {
         if (!topicId) {
-            alert("Ungültiger Aufruf (keine Kasse-ID gefunden)!");
+            alert("Fehler: Keine gültige Kassen-Sitzung gefunden!");
             return;
         }
 
-        // Signal 'PAID' über ntfy.sh direkt an das iPad senden
+        // Sende das Signal über ntfy an das iPad
         fetch(`https://ntfy.sh/${topicId}`, {
             method: 'POST',
             body: 'PAID'
         }).then(() => {
-            // UI auf dem Handy aktualisieren
             document.getElementById('pay-btn').style.display = 'none';
             document.getElementById('done-msg').style.display = 'block';
         }).catch(err => {
-            alert("Fehler beim Senden des Signals.");
+            alert("Fehler beim Senden der Bezahlung.");
         });
     }
 </script>
