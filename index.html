@@ -3,218 +3,151 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Eisdiele Bezahlung</title>
+    <title>Kunden-Geldbörse & Scanner</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            text-align: center;
+        :root {
+            --primary: #0984e3;
+            --success: #00b894;
+            --card-bg: #ffffff;
+            --text: #2d3436;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
             padding: 20px;
-            background: #f0f9ff;
-            color: #0c4a6e;
-            margin: 0;
+            color: var(--text);
         }
 
-        .card {
-            background: white;
-            padding: 25px;
-            border-radius: 20px;
-            border: 2px solid #bae6fd;
-            box-shadow: 0 4px 15px rgba(2, 132, 199, 0.15);
-            max-width: 360px;
-            margin: 0 auto;
-        }
-
-        h1 { color: #0284c7; margin-top: 0; }
-
-        .balance-box {
-            background: #e0f2fe;
-            border-radius: 12px;
-            padding: 10px;
-            margin-bottom: 20px;
-            font-weight: bold;
-        }
-
-        .balance-amount {
-            font-size: 1.5rem;
-            color: #0284c7;
-        }
-
-        .amount { font-size: 2.2rem; font-weight: bold; color: #0369a1; margin: 15px 0; }
-
-        button {
-            background: #0284c7;
-            color: white;
-            border: none;
-            padding: 16px;
-            font-size: 1.1rem;
-            font-weight: bold;
-            border-radius: 14px;
+        .container { 
             width: 100%;
-            cursor: pointer;
-            margin-top: 10px;
+            max-width: 450px; 
+            background: var(--card-bg); 
+            padding: 25px; 
+            border-radius: 20px; 
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2); 
+            text-align: center;
         }
 
-        button:active { background: #0369a1; }
-        button:disabled { background: #94a3b8; cursor: not-allowed; }
+        h2 { margin-bottom: 20px; font-size: 24px; color: var(--primary); }
 
-        #interactive {
+        .balance-card { 
+            background: linear-gradient(135deg, #0984e3 0%, #6c5ce7 100%);
+            color: white; 
+            padding: 20px; 
+            border-radius: 16px; 
+            box-shadow: 0 8px 20px rgba(9, 132, 227, 0.3);
+            margin-bottom: 25px; 
+        }
+
+        .balance-label { font-size: 13px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.8; }
+        .balance-amount { font-size: 32px; font-weight: bold; margin-top: 5px; }
+
+        #reader { width: 100%; border-radius: 12px; overflow: hidden; border: none !important; }
+
+        .action-box { 
+            margin-top: 20px; 
+            padding: 20px; 
+            background: #f1f2f6;
+            border-radius: 16px; 
+            display: none; 
+        }
+
+        .btn { 
             width: 100%;
-            margin-top: 15px;
-            border-radius: 12px;
-            overflow: hidden;
-        }
-
-        .msg-box {
-            padding: 15px;
-            border-radius: 12px;
+            padding: 12px 20px; 
+            font-size: 16px; 
             font-weight: bold;
-            font-size: 1.2rem;
-            margin-top: 15px;
-            display: none;
+            border: none; 
+            border-radius: 12px; 
+            cursor: pointer; 
         }
 
-        .done { background: #dcfce7; color: #16a34a; }
-        .error { background: #fee2e2; color: #dc2626; }
-
-        .hidden { display: none; }
+        .btn-confirm { background-color: var(--success); color: white; }
     </style>
 </head>
 <body>
 
-<div class="card">
-    <h1>🍦 Eisdiele Guthaben</h1>
-
-    <div class="balance-box">
-        Dein Guthaben: <br>
-        <span class="balance-amount" id="user-balance">120,00 €</span>
+<div class="container">
+    <h2>📱 Kunden-Geldbörse</h2>
+    
+    <div class="balance-card">
+        <div class="balance-label">Spielkonto Guthaben</div>
+        <div class="balance-amount"><span id="balance">120,00</span> €</div>
     </div>
 
-    <div id="scan-step">
-        <p>Tippe unten, um den QR-Code vom iPad zu scannen:</p>
-        <button id="start-btn" onclick="startCamera()">Kamera starten</button>
-        <div id="interactive"></div>
-    </div>
+    <div id="reader"></div>
 
-    <div id="pay-step" class="hidden">
-        <p id="mode-text">Zu zahlender Betrag:</p>
-        <div class="amount" id="display-amount">0,00 €</div>
-        <button id="action-btn" onclick="processTransaction()">Bestätigen</button>
-    </div>
-
-    <div id="done-msg" class="msg-box done"></div>
-    <div id="error-msg" class="msg-box error">
-        ❌ Nicht genug Guthaben!
-        <br><br>
-        <button style="background:#dc2626;" onclick="resetApp()">Zurück</button>
+    <div id="action-box" class="action-box">
+        <h3 id="action-title">Transaktion</h3>
+        <p id="action-text"></p>
+        <button id="btn-action" class="btn btn-confirm" onclick="processTransaction()">Bestätigen</button>
     </div>
 </div>
 
 <script>
-    // LocalStorage Initialisierung: Einmalig 120.00 € Guthaben
-    if (localStorage.getItem('user_balance') === null) {
-        localStorage.setItem('user_balance', '120.00');
+    let balance = parseFloat(localStorage.getItem('gameBalance')) || 120.00;
+    updateBalanceUI();
+
+    let pendingType = null;
+    let pendingAmount = 0;
+
+    function updateBalanceUI() {
+        document.getElementById('balance').textContent = balance.toFixed(2).replace('.', ',');
+        localStorage.setItem('gameBalance', balance.toFixed(2));
     }
 
-    let currentBalance = parseFloat(localStorage.getItem('user_balance'));
-    let currentTopic = null;
-    let currentAmount = 0;
-    let currentMode = 'PAY'; // 'PAY' oder 'TOPUP'
-    let html5QrCode = null;
+    function onScanSuccess(decodedText) {
+        const parts = decodedText.split('|');
+        if (parts.length !== 2) return;
 
-    function updateBalanceDisplay() {
-        document.getElementById('user-balance').innerText = currentBalance.toFixed(2) + ' €';
-    }
-    updateBalanceDisplay();
+        pendingType = parts[0];
+        pendingAmount = parseFloat(parts[1]);
 
-    async function startCamera() {
-        document.getElementById('start-btn').style.display = 'none';
-        html5QrCode = new Html5Qrcode("interactive");
+        const actionBox = document.getElementById('action-box');
+        const actionTitle = document.getElementById('action-title');
+        const actionText = document.getElementById('action-text');
 
-        const qrCodeSuccessCallback = (decodedText) => {
-            try {
-                const data = JSON.parse(decodedText);
-                if (data.topic && data.amount) {
-                    currentTopic = data.topic;
-                    currentAmount = parseFloat(data.amount);
-                    currentMode = data.mode || 'PAY';
+        if (pendingType === 'PAYMENT') {
+            actionTitle.textContent = "🛒 Bezahlen";
+            actionText.textContent = `Möchtest du ${pendingAmount.toFixed(2).replace('.', ',')} € bezahlen?`;
+        } else if (pendingType === 'TOPUP') {
+            actionTitle.textContent = "💳 Guthaben aufladen";
+            actionText.textContent = `Möchtest du ${pendingAmount.toFixed(2).replace('.', ',')} € aufladen?`;
+        }
 
-                    document.getElementById('display-amount').innerText = currentAmount.toFixed(2) + ' €';
-
-                    if (currentMode === 'TOPUP') {
-                        document.getElementById('mode-text').innerText = "Guthaben das aufgeladen wird:";
-                        document.getElementById('action-btn').innerText = "Guthaben Aufladen";
-                        document.getElementById('action-btn').style.background = "#16a34a";
-                    } else {
-                        document.getElementById('mode-text').innerText = "Zu zahlender Betrag:";
-                        document.getElementById('action-btn').innerText = "Jetzt Bezahlen";
-                        document.getElementById('action-btn').style.background = "#0284c7";
-                    }
-                    
-                    html5QrCode.stop().then(() => {
-                        document.getElementById('scan-step').classList.add('hidden');
-                        document.getElementById('pay-step').classList.remove('hidden');
-                    });
-                }
-            } catch (e) {
-                console.log("Kein gültiger Kassen-Code");
-            }
-        };
-
-        html5QrCode.start(
-            { facingMode: "environment" }, 
-            { fps: 10, qrbox: { width: 220, height: 220 } }, 
-            qrCodeSuccessCallback
-        ).catch(err => {
-            alert("Kamera-Fehler! Bitte Berechtigungen prüfen.");
-            document.getElementById('start-btn').style.display = 'block';
-        });
+        actionBox.style.display = 'block';
     }
 
     function processTransaction() {
-        if (!currentTopic) return;
-
-        // Prüfen, ob bei der Bezahlung genügend Guthaben da ist
-        if (currentMode === 'PAY' && currentBalance < currentAmount) {
-            document.getElementById('pay-step').classList.add('hidden');
-            document.getElementById('error-msg').style.display = 'block';
-            return;
-        }
-
-        // Guthaben berechnen
-        if (currentMode === 'TOPUP') {
-            currentBalance += currentAmount;
-        } else {
-            currentBalance -= currentAmount;
-        }
-
-        // Neues Guthaben im LocalStorage speichern
-        localStorage.setItem('user_balance', currentBalance.toFixed(2));
-        updateBalanceDisplay();
-
-        // Bestätigungssignal an das iPad senden
-        fetch(`https://ntfy.sh/${currentTopic}`, {
-            method: 'POST',
-            body: 'PAID'
-        }).then(() => {
-            document.getElementById('pay-step').classList.add('hidden');
-            const doneBox = document.getElementById('done-msg');
-            
-            if (currentMode === 'TOPUP') {
-                doneBox.innerHTML = `🎉 ${currentAmount.toFixed(2)} € aufgeladen!<br><br><button style="background:#16a34a;" onclick="resetApp()">Fertig</button>`;
+        if (pendingType === 'PAYMENT') {
+            if (balance < pendingAmount) {
+                alert("❌ Nicht genügend Guthaben! Bitte erst an der Kasse aufladen.");
             } else {
-                doneBox.innerHTML = `✅ Geld abgebucht!<br><br><button style="background:#16a34a;" onclick="resetApp()">Nächste Zahlung</button>`;
+                balance -= pendingAmount;
+                alert("✅ Zahlung erfolgreich!");
             }
-            doneBox.style.display = 'block';
-        });
+        } else if (pendingType === 'TOPUP') {
+            balance += pendingAmount;
+            alert("✅ Guthaben erfolgreich aufgeladen!");
+        }
+
+        updateBalanceUI();
+        document.getElementById('action-box').style.display = 'none';
+        pendingType = null;
+        pendingAmount = 0;
     }
 
-    function resetApp() {
-        document.getElementById('done-msg').style.display = 'none';
-        document.getElementById('error-msg').style.display = 'none';
-        document.getElementById('scan-step').classList.remove('hidden');
-        document.getElementById('start-btn').style.display = 'block';
-    }
+    // Kamera initialisieren
+    const html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 220 });
+    html5QrcodeScanner.render(onScanSuccess);
 </script>
 
 </body>
