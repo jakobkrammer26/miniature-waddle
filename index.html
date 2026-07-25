@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kunden-Geldbörse & Scanner</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
     <style>
         :root {
             --primary: #0984e3;
@@ -98,6 +99,10 @@
 
     let pendingType = null;
     let pendingAmount = 0;
+    let targetKasseId = null;
+
+    // MQTT Verbindungsaufbau
+    const client = mqtt.connect('wss://broker.emqx.io:8084/mqtt');
 
     function updateBalanceUI() {
         document.getElementById('balance').textContent = balance.toFixed(2).replace('.', ',');
@@ -106,10 +111,11 @@
 
     function onScanSuccess(decodedText) {
         const parts = decodedText.split('|');
-        if (parts.length !== 2) return;
+        if (parts.length < 2) return;
 
         pendingType = parts[0];
         pendingAmount = parseFloat(parts[1]);
+        targetKasseId = parts[2] || "kasse_session_1";
 
         const actionBox = document.getElementById('action-box');
         const actionTitle = document.getElementById('action-title');
@@ -130,12 +136,23 @@
         if (pendingType === 'PAYMENT') {
             if (balance < pendingAmount) {
                 alert("❌ Nicht genügend Guthaben! Bitte erst an der Kasse aufladen.");
+                return;
             } else {
                 balance -= pendingAmount;
+                // Signal an Kasse senden
+                client.publish(`eiskasse/status/${targetKasseId}`, JSON.stringify({
+                    type: 'PAID',
+                    amount: pendingAmount
+                }));
                 alert("✅ Zahlung erfolgreich!");
             }
         } else if (pendingType === 'TOPUP') {
             balance += pendingAmount;
+            // Signal an Kasse senden
+            client.publish(`eiskasse/status/${targetKasseId}`, JSON.stringify({
+                type: 'TOPUP_SUCCESS',
+                amount: pendingAmount
+            }));
             alert("✅ Guthaben erfolgreich aufgeladen!");
         }
 
@@ -145,7 +162,6 @@
         pendingAmount = 0;
     }
 
-    // Kamera initialisieren
     const html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 220 });
     html5QrcodeScanner.render(onScanSuccess);
 </script>
